@@ -3,6 +3,19 @@
 #include <numeric>
 #include <random>
 
+/// @brief Overload the << operator for vectors of integers.
+/// @param os Output stream.
+/// @param v Vector of integers.
+/// @return Output stream.
+std::ostream &operator<<(std::ostream &os, const std::vector<int> &v) {
+  os << "[";
+  for (auto &x : v) {
+    os << x << " ";
+  }
+  os << "\b]";
+  return os;
+}
+
 /**
  * @brief Print a groups array and a name string.
  *
@@ -18,11 +31,8 @@ void printGroups(const std::array<std::vector<int>, K> &groups,
 
   for (int i = 0; i < K; i++) {
     int sum = std::accumulate(groups[i].begin(), groups[i].end(), 0);
-    std::cout << "Group " << i << " (Sum: " << sum << "): [";
-    for (auto &x : groups[i]) {
-      std::cout << x << " ";
-    }
-    std::cout << "\b]\n";
+    std::cout << "Group " << i << " (Sum: " << sum << "): " << groups[i]
+              << "\n";
   }
 }
 
@@ -55,11 +65,7 @@ int main(int, char **) {
     }
   }
 
-  std::cout << "Data: [";
-  for (auto &x : arr) {
-    std::cout << x << " ";
-  }
-  std::cout << "\b]\n";
+  std::cout << "Data: " << arr << "\n";
   std::cout << "Optimal sum: " << optimalSum << "\n";
 
   auto g = partition::greedy<K>(arr);
