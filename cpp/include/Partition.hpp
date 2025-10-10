@@ -24,6 +24,33 @@ std::array<std::vector<int>, K> greedy(std::vector<int> &arr);
  */
 template <unsigned K>
 std::array<std::vector<int>, K> lpt(std::vector<int> &arr);
+
+/**
+ * @brief Template function to partition a given array into K groups using a
+ * multifit approach.
+ *
+ * This function implements a dynamic programming approach to find the optimal
+ * partition of the array into K groups.
+ *
+ * @param K The number of groups to partition the array into.
+ * @param arr The array to partition.
+ * @return An array of vectors containing the partitioned groups of the array.
+ */
+template <unsigned K>
+std::array<std::vector<int>, K> multifit(std::vector<int> &arr);
+
+/**
+ * @brief Template function to partition a given array into K groups using the
+ * FFD algorithm.
+ *
+ * This function implements the FFD algorithm to find the optimal partition of
+ * the array into K groups.
+ *
+ * @param K The number of groups to partition the array into.
+ * @param arr The array to partition.
+ * @return An array of vectors containing the partitioned groups of the array.
+ */
+std::vector<std::vector<int>> ffd(std::vector<int> &arr, unsigned capacity);
 } // namespace partition
 
 #include "Partition.tpp"

@@ -41,8 +41,8 @@ void printGroups(const std::array<std::vector<int>, K> &groups,
  *
  * This function generates K random numbers between 1 and K*100000,
  * distributes them between K groups, and then applies two different
- * algorithms (Greedy and LPT) to find the optimal partition of the
- * numbers.
+ * algorithms (Greedy, LPT and Multifit) to find the optimal partition
+ * of the numbers.
  */
 int main(int, char **) {
   constexpr unsigned K = 3;
@@ -70,9 +70,11 @@ int main(int, char **) {
 
   auto g = partition::greedy<K>(arr);
   auto l = partition::lpt<K>(arr);
+  auto m = partition::multifit<K>(arr);
 
   printGroups<K>(g, "Greedy");
   printGroups<K>(l, "LPT");
+  printGroups<K>(m, "Multifit");
 
   return 0;
 }
