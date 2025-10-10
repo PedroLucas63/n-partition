@@ -1,3 +1,4 @@
+import partition.LRMPartition;
 import partition.Partition;
 
 import java.util.ArrayList;
@@ -34,11 +35,28 @@ public class Main {
         System.out.println("Data: " + data);
         System.out.println("Optimal sum: " + optimalSum);
 
+        // ------------------- Greedy -------------------
+        long start = System.nanoTime();
         var g = Partition.greedy(data, K);
-        var l = Partition.lpt(data, K);
-
+        long end = System.nanoTime();
         printGroups(g, "Greedy");
+        System.out.println("Greedy time: " + (end - start) / 1_000_000.0 + " ms");
+
+        // ------------------- LPT -------------------
+        start = System.nanoTime();
+        var l = Partition.lpt(data, K);
+        end = System.nanoTime();
         printGroups(l, "LPT");
+        System.out.println("LPT time: " + (end - start) / 1_000_000.0 + " ms");
+
+        // ------------------- LRM Generic -------------------
+        start = System.nanoTime();
+        var e = LRMPartition.lrmGeneric(data, K);
+        end = System.nanoTime();
+        printGroups(e, "LRM Generic");
+        System.out.println("LRM Generic time: " + (end - start) / 1_000_000.0 + " ms");
+
+
     }
 
     /**
