@@ -1,7 +1,9 @@
-#include "Partition.hpp"
 #include <iostream>
-#include <numeric>
-#include <random>
+#include "partition.hpp" 
+#include "ReadInstances.hpp"
+#include <fstream>
+#include <chrono>
+
 
 /// @brief Overload the << operator for vectors of integers.
 /// @param os Output stream.
@@ -16,65 +18,139 @@ std::ostream &operator<<(std::ostream &os, const std::vector<int> &v) {
   return os;
 }
 
-/**
- * @brief Print a groups array and a name string.
- *
- * @param groups A groups array containing the groups to print.
- * @param name A name string to print with the groups.
- *
- * This function prints the groups array with the corresponding name string.
- */
-template <unsigned N>
-void printGroups(const std::array<std::vector<int>, N> &groups,
-                 const std::string &name) {
-  std::cout << "\n=== " << name << " ===\n";
 
-  for (int i = 0; i < N; i++) {
-    int sum = std::accumulate(groups[i].begin(), groups[i].end(), 0);
-    std::cout << "Group " << i << " (Sum: " << sum << "): " << groups[i]
-              << "\n";
-  }
+/**
+ * @brief Writes the partitioned groups and their sums to a CSV file.
+ * 
+ * @param os The output stream to write to.
+ * @param instanceID The ID of the instance.
+ * @param N The number of elements in the instance.
+ * @param Kval The number of partitions in the instance.
+ * @param B The bit size used in the instance.
+ * @param groups The partitioned groups.
+ * @param algorithmName The name of the algorithm used.
+ * @param timeMicroseconds The time taken by the algorithm in microseconds.
+ */
+template <size_t K>
+void writeInstanceCSV(std::ostream &os, size_t instanceID, int N, int Kval, int B, int optimalMakespan,
+                    const std::array<std::vector<int>, K> &ls, long long lsTime,
+                    const std::array<std::vector<int>, K> &lpt, long long lptTime,
+                    const std::array<std::vector<int>, K> &multifit, long long multifitTime) {
+
+  auto maxGroupSum = [](const std::array<std::vector<int>, K> &groups) {
+    int maxSum = 0;
+    for (auto &group : groups) {
+      int sum = 0;
+      for (int x : group) sum += x;
+      if (sum > maxSum) maxSum = sum;
+    }
+    return maxSum;
+  };
+
+  os << instanceID << "," << N << "," << Kval << "," << B << "," << optimalMakespan
+    << "," << maxGroupSum(ls) << "," << lsTime
+    << "," << maxGroupSum(lpt) << "," << lptTime
+    << "," << maxGroupSum(multifit) << "," << multifitTime << "\n";
 }
 
 /**
- * @brief Main function.
- *
- * This function generates N random numbers between 1 and N*100000,
- * distributes them between N groups, and then applies two different
- * algorithms (Greedy, LPT and Multifit) to find the optimal partition
- * of the numbers.
+ * @brief Macro to generate switch cases for different template instantiations of K.
+ * 
+ * @param KVALUE The template value K.
+ * @param ARR The array/vector to be partitioned.
+ * @param INSTANCEID The instance ID for printing.
+ * @param NVAL The N value of the instance.
+ * @param KVAL The K value of the instance.
+ * @param BVAL The B value of the instance.
+ * @param OS The output stream to print results to.
+ * 
  */
-int main(int, char **) {
-  constexpr unsigned N = 3;
-  constexpr unsigned MAX_OPTIMAL_SUM = 1000;
-  std::vector<int> arr;
 
-  std::random_device rd;
-  std::mt19937 rng(rd());
-  std::uniform_int_distribution<int> dist(N, N * MAX_OPTIMAL_SUM);
-  int optimalSum = dist(rng) / N;
+#define RUN_FOR_K_CSV(KVALUE, ARR, INSTANCEID, NVAL, KVAL, BVAL, OPTIMAL, OS) \
+  case KVALUE: { \
+    auto start = std::chrono::high_resolution_clock::now(); \
+    auto g = partition::LS<KVALUE>(ARR); \
+    auto end = std::chrono::high_resolution_clock::now(); \
+    auto greedyTime = std::chrono::duration_cast<std::chrono::microseconds>(end - start).count(); \
+    \
+    start = std::chrono::high_resolution_clock::now(); \
+    auto l = partition::LPT<KVALUE>(ARR); \
+    end = std::chrono::high_resolution_clock::now(); \
+    auto lptTime = std::chrono::duration_cast<std::chrono::microseconds>(end - start).count(); \
+    \
+    start = std::chrono::high_resolution_clock::now(); \
+    end = std::chrono::high_resolution_clock::now(); \
+    auto multifitTime = std::chrono::duration_cast<std::chrono::microseconds>(end - start).count(); \
+    \
+    writeInstanceCSV(OS, INSTANCEID, NVAL, KVAL, BVAL, OPTIMAL, g, greedyTime, l, lptTime, l, multifitTime); \
+    break; \
+  }
 
-  for (int i = 0; i < N; i++) {
-    int objectiveSum = optimalSum;
 
-    while (objectiveSum != 0) {
-      std::uniform_int_distribution<int> dist(1, objectiveSum);
-      int x = dist(rng);
-      arr.push_back(x);
-      objectiveSum -= x;
+
+
+/**
+ * @brief Class responsible for running partitioning experiments on multiple instances.
+ * 
+ * Reads instances from a file, executes the partitioning algorithms for each instance,
+ * and prints the results to the console.
+ * 
+ * @patam outputFileName The name of the CSV file to write results to.
+ */
+class ExperimentRunner {
+  std::ofstream outFile;  // CSV output file stream
+
+public:
+  ExperimentRunner(const std::string &outputFileName = "results.csv")
+      : outFile(outputFileName, std::ios::out)
+  {
+    if (!outFile.is_open()) {
+        throw std::runtime_error("Failed to open output file.");
+    }
+
+    // write CSV header
+    outFile << "InstanceID,N,K,B,OptimalMakespan,LS_MaxGroupSum,LS_Time(us),LPT_MaxGroupSum,LPT_Time(us),MULTIFIT_MaxGroupSum,MULTIFIT_Time(us)\n";
+
+
+  }
+
+  void run() {
+    auto instances = ReadInstances::readInstances();
+    ReadInstances::printInstances(instances);
+
+    for (size_t i = 0; i < instances.size(); ++i) {
+      runInstance(instances[i], i + 1);
     }
   }
 
-  std::cout << "Data: " << arr << "\n";
-  std::cout << "Optimal sum: " << optimalSum << "\n";
+private:
+  void runInstance(ReadInstances::InstanceData &instance, size_t id) {
 
-  auto ls = partition::LS<N>(arr);
-  auto lpt = partition::LPT<N>(arr);
-  auto mf = partition::MULTIFIT<N>(arr);
+    runAlgorithmsByK(instance.K, instance.values, id, instance.N, instance.K, instance.B, instance.optimalSum, outFile);
+  }
 
-  printGroups<N>(ls, "List Scheduling");
-  printGroups<N>(lpt, "Least Processing Time");
-  printGroups<N>(mf, "MULTIFIT");
+  void runAlgorithmsByK(int K, std::vector<int> &arr, size_t instanceID, int Nval, int Kval, int Bval, int optimalSum, std::ostream &os) {
+    switch (K) {
+      RUN_FOR_K_CSV(2, arr, instanceID, Nval, Kval, Bval, optimalSum, os)
+      RUN_FOR_K_CSV(3, arr, instanceID, Nval, Kval, Bval, optimalSum, os)
+      RUN_FOR_K_CSV(4, arr, instanceID, Nval, Kval, Bval, optimalSum, os)
+      RUN_FOR_K_CSV(8, arr, instanceID, Nval, Kval, Bval, optimalSum, os)
+      RUN_FOR_K_CSV(16, arr, instanceID, Nval, Kval, Bval, optimalSum, os)
+    default:
+      os << "[WARN] Unsupported K = " << K << "\n";
+    }
+  }
+};
 
-  return 0;
+
+int main(int, char **) {
+  try {
+    ExperimentRunner runner("results.csv");
+    runner.run();
+    std::cout << "Experiment completed. Results saved to 'results.csv'.\n";
+  } catch (const std::exception &e) {
+    std::cerr << "[ERROR] " << e.what() << "\n";
+    return EXIT_FAILURE;
+  }
+  return EXIT_SUCCESS;
 }

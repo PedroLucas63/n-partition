@@ -65,7 +65,8 @@
       "format": "cpp",
       "fstream": "cpp",
       "ranges": "cpp",
-      "text_encoding": "cpp"
+      "text_encoding": "cpp",
+      "set": "cpp"
    },
    "cmake.ignoreCMakeListsMissing": true
 }

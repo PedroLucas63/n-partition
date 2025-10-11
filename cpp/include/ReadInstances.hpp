@@ -15,7 +15,7 @@ struct InstanceData {
     int N;                   // Number of elements
     int K;                   // Number of partitions
     int B;                   // Number of bits used in number generation
-    int OPTIMAL_SUM;          // Known optimal sum per partition
+    int optimalSum;          // Known optimal sum per partition
     std::vector<int> values; // List of generated numbers
 };
 
@@ -31,6 +31,14 @@ struct InstanceData {
  * @return std::vector<InstanceData> A vector containing all instances.
  */
 std::vector<InstanceData> readInstances(const std::string &filePath = INSTANCE_PATH);
+
+
+/**
+ * @brief Prints all instances to the console for verification.
+ * 
+ * @param instances A vector of InstanceData to print.
+ */
+void printInstances(const std::vector<InstanceData>& instances);
 
 } // namespace ReadInstances
 
