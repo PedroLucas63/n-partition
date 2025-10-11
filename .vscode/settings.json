@@ -1,5 +1,6 @@
 {
    "files.associations": {
+      "*.ejs": "html",
       "bit": "cpp",
       "cmath": "cpp",
       "compare": "cpp",
@@ -61,7 +62,10 @@
       "thread": "cpp",
       "cinttypes": "cpp",
       "variant": "cpp",
-      "format": "cpp"
+      "format": "cpp",
+      "fstream": "cpp",
+      "ranges": "cpp",
+      "text_encoding": "cpp"
    },
    "cmake.ignoreCMakeListsMissing": true
 }
