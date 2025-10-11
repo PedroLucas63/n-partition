@@ -66,20 +66,20 @@ std::array<std::vector<int>, n> MULTIFIT(std::vector<int> &arr, unsigned k) {
     max = std::max(max, x);
   }
 
-  unsigned lowerbound = std::max<unsigned>(max, sum / n);
-  unsigned upperbound = std::max<unsigned>(max, 2 * sum / n);
+  unsigned lowerBound = std::max<unsigned>(max, sum / n);
+  unsigned upperBound = std::max<unsigned>(max, 2 * sum / n);
 
   std::vector<std::vector<int>> bestGroups;
 
   for (int i = 0; i < k; i++) {
-    unsigned capacity = (lowerbound + upperbound) / 2;
+    unsigned capacity = (lowerBound + upperBound) / 2;
     auto groups = FFD(arr, capacity);
 
     if (groups.size() > n) {
-      lowerbound = capacity;
+      lowerBound = capacity;
     } else {
       bestGroups = groups;
-      upperbound = capacity;
+      upperBound = capacity;
     }
   }
 
