@@ -61,7 +61,7 @@ std::array<std::vector<int>, n> MULTIFIT(std::vector<int> &arr, unsigned k) {
   std::sort(arr.begin(), arr.end(), std::greater<int>());
 
   int sum = 0, max = 0;
-  for (auto &x : arr) {
+  for (auto &x : arr) {          
     sum += x;
     max = std::max(max, x);
   }
@@ -92,10 +92,10 @@ std::array<std::vector<int>, n> MULTIFIT(std::vector<int> &arr, unsigned k) {
 
 std::vector<std::vector<int>> FFD(std::vector<int> &arr, unsigned capacity) {
   struct Bin {
-    unsigned remainingCapacity;
+    unsigned remaining;
     unsigned idx;
     bool operator<(const Bin &other) const {
-      return remainingCapacity < other.remainingCapacity;
+      return remaining < other.remaining;
     }
   };
 
@@ -113,7 +113,7 @@ std::vector<std::vector<int>> FFD(std::vector<int> &arr, unsigned capacity) {
     } else {
       // Bin with remaining capacity >= x
       groups[it->idx].push_back(x);
-      Bin newBin{it->remainingCapacity - x, it->idx};
+      Bin newBin{it->remaining - x, it->idx};
       bins.erase(it);
       bins.insert(newBin);
     }
