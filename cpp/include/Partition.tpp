@@ -1,55 +1,60 @@
 #pragma once
 #include <cmath>
+#include <queue>
+#include <set>
 #include <stdexcept>
+#include <tuple>
 
 namespace partition {
 
-template <unsigned K>
-std::array<std::vector<int>, K> greedy(std::vector<int> &arr) {
-  if (K <= 0) {
-    throw std::invalid_argument("K must be a positive integer");
-  } else if (K == 1) {
+template <unsigned n>
+std::array<std::vector<int>, n> LS(std::vector<int> &arr) {
+  if (n <= 0) {
+    throw std::invalid_argument("n must be a positive integer");
+  } else if (n == 1) {
     return {{arr}};
   }
 
-  std::array<std::vector<int>, K> groups;
-  std::array<int, K> sums{};
+  std::array<std::vector<int>, n> groups;
+
+  using queue_element = std::pair<int, int>; // {sum, index}
+  auto cmp = [](const queue_element &a, const queue_element &b) {
+    return a.first > b.first;
+  };
+  std::priority_queue<queue_element, std::vector<queue_element>, decltype(cmp)>
+      pq(cmp);
+
+  for (int i = 0; i < n; i++) {
+    pq.push({0, i});
+  }
 
   for (auto &x : arr) {
-    int i = 0;
-    int minSum = sums[0];
-
-    for (int j = 1; j < K; j++) {
-      if (sums[j] < minSum) {
-        i = j;
-        minSum = sums[j];
-      }
-    }
-
+    auto [sum, i] = pq.top();
+    pq.pop();
     groups[i].push_back(x);
-    sums[i] += x;
+    pq.push({sum + x, i});
   }
 
   return groups;
 }
 
-template <unsigned K>
-std::array<std::vector<int>, K> lpt(std::vector<int> &arr) {
-  if (K <= 0) {
-    throw std::invalid_argument("K must be a positive integer");
-  } else if (K == 1) {
+template <unsigned n>
+std::array<std::vector<int>, n> LPT(std::vector<int> &arr) {
+  if (n <= 0) {
+    throw std::invalid_argument("n must be a positive integer");
+  } else if (n == 1) {
     return {{arr}};
   }
 
   std::sort(arr.begin(), arr.end(), std::greater<int>());
-  return greedy<K>(arr);
+  return LS<n>(arr);
 }
 
-template <unsigned K>
-std::array<std::vector<int>, K> multifit(std::vector<int> &arr) {
-  if (K <= 0) {
-    throw std::invalid_argument("K must be a positive integer");
-  } else if (K == 1) {
+template <unsigned n>
+std::array<std::vector<int>, n> MULTIFIT(std::vector<int> &arr, unsigned k) {
+  if (n <= 0) {
+    throw std::invalid_argument("n must be a positive integer");
+  } else if (n == 1) {
     return {{arr}};
   }
 
@@ -61,50 +66,56 @@ std::array<std::vector<int>, K> multifit(std::vector<int> &arr) {
     max = std::max(max, x);
   }
 
-  unsigned lowerbound = std::max<unsigned>(max, sum / K);
-  unsigned upperbound = 2 * sum / K;
+  unsigned lowerbound = std::max<unsigned>(max, sum / n);
+  unsigned upperbound = std::max<unsigned>(max, 2 * sum / n);
 
   std::vector<std::vector<int>> bestGroups;
 
-  while (upperbound - lowerbound > 1) {
+  for (int i = 0; i < k; i++) {
     unsigned capacity = (lowerbound + upperbound) / 2;
-    auto groups = ffd(arr, capacity);
+    auto groups = FFD(arr, capacity);
 
-    if (groups.size() > K) {
-      lowerbound = capacity + 1;
+    if (groups.size() > n) {
+      lowerbound = capacity;
     } else {
       bestGroups = groups;
       upperbound = capacity;
     }
   }
 
-  std::array<std::vector<int>, K> finalGroups;
-  for (int i = 0; i < K; i++) {
+  std::array<std::vector<int>, n> finalGroups;
+  for (int i = 0; i < n; i++) {
     finalGroups[i] = bestGroups[i];
   }
   return finalGroups;
 }
 
-std::vector<std::vector<int>> ffd(std::vector<int> &arr, unsigned capacity) {
+std::vector<std::vector<int>> FFD(std::vector<int> &arr, unsigned capacity) {
+  struct Bin {
+    unsigned remainingCapacity;
+    unsigned idx;
+    bool operator<(const Bin &other) const {
+      return remainingCapacity < other.remainingCapacity;
+    }
+  };
+
   std::vector<std::vector<int>> groups;
-  std::vector<int> sums{};
+  std::multiset<Bin> bins;
 
   for (auto &x : arr) {
-    int i = -1;
+    // First bin with remaining capacity >= x
+    auto it = bins.lower_bound(Bin{unsigned(x), unsigned(0)});
 
-    for (int j = 0; j < groups.size(); j++) {
-      if (sums[j] + x <= capacity) {
-        i = j;
-        break;
-      }
-    }
-
-    if (i == -1) {
+    // No bin with remaining capacity >= x
+    if (it == bins.end()) {
       groups.push_back({x});
-      sums.push_back(x);
+      bins.insert(Bin{capacity - x, unsigned(groups.size() - 1)});
     } else {
-      groups[i].push_back(x);
-      sums[i] += x;
+      // Bin with remaining capacity >= x
+      groups[it->idx].push_back(x);
+      Bin newBin{it->remainingCapacity - x, it->idx};
+      bins.erase(it);
+      bins.insert(newBin);
     }
   }
 
