@@ -27,9 +27,13 @@ std::ostream &operator<<(std::ostream &os, const std::vector<int> &v) {
  * @param N The number of elements in the instance.
  * @param Kval The number of partitions in the instance.
  * @param B The bit size used in the instance.
- * @param groups The partitioned groups.
- * @param algorithmName The name of the algorithm used.
- * @param timeMicroseconds The time taken by the algorithm in microseconds.
+ * @param ls The groups formed by the LS algorithm.
+ * @param lsTime The time taken by the LS algorithm in microseconds.
+ * @param lpt The groups formed by the LPT algorithm.
+ * @param lptTime The time taken by the LPT algorithm in microseconds.
+ * @param multifit The groups formed by the MULTIFIT algorithm.
+ * @param multifitTime The time taken by the MULTIFIT algorithm in microseconds.
+ * @param optimalMakespan The optimal makespan for the instance.
  */
 template <size_t K>
 void writeInstanceCSV(std::ostream &os, size_t instanceID, int N, int Kval, int B, int optimalMakespan,
@@ -62,6 +66,7 @@ void writeInstanceCSV(std::ostream &os, size_t instanceID, int N, int Kval, int 
  * @param NVAL The N value of the instance.
  * @param KVAL The K value of the instance.
  * @param BVAL The B value of the instance.
+ * @param OPTIMAL The optimal makespan of the instance.
  * @param OS The output stream to print results to.
  * 
  */
@@ -79,10 +84,11 @@ void writeInstanceCSV(std::ostream &os, size_t instanceID, int N, int Kval, int 
     auto lptTime = std::chrono::duration_cast<std::chrono::microseconds>(end - start).count(); \
     \
     start = std::chrono::high_resolution_clock::now(); \
+    auto m = partition::MULTIFIT<KVALUE>(ARR); \
     end = std::chrono::high_resolution_clock::now(); \
     auto multifitTime = std::chrono::duration_cast<std::chrono::microseconds>(end - start).count(); \
     \
-    writeInstanceCSV(OS, INSTANCEID, NVAL, KVAL, BVAL, OPTIMAL, g, greedyTime, l, lptTime, l, multifitTime); \
+    writeInstanceCSV(OS, INSTANCEID, NVAL, KVAL, BVAL, OPTIMAL, g, greedyTime, l, lptTime, m, multifitTime); \
     break; \
   }
 
@@ -101,7 +107,7 @@ class ExperimentRunner {
   std::ofstream outFile;  // CSV output file stream
 
 public:
-  ExperimentRunner(const std::string &outputFileName = "results.csv")
+  ExperimentRunner(const std::string &outputFileName = "../../results.csv")
       : outFile(outputFileName, std::ios::out)
   {
     if (!outFile.is_open()) {
@@ -110,8 +116,6 @@ public:
 
     // write CSV header
     outFile << "InstanceID,N,K,B,OptimalMakespan,LS_MaxGroupSum,LS_Time(us),LPT_MaxGroupSum,LPT_Time(us),MULTIFIT_MaxGroupSum,MULTIFIT_Time(us)\n";
-
-
   }
 
   void run() {

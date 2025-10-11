@@ -31,3 +31,5 @@ bin/
 
 ### IDEA ###
 .idea
+
+__pycache__

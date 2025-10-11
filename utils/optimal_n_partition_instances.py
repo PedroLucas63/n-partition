@@ -17,7 +17,7 @@ def generate_balanced_instances_strict(
             for k in k_values:
                 for b in b_values:
                     for _ in range(repeat):
-                        max_optimal_sum = max(n + 10, 2 ** b // (10 * k))
+                        max_optimal_sum = max(n + 30, 2 ** b // (10 * k))
                         optimal_sum = random.randint(n, max_optimal_sum)
 
                         arr = []
@@ -40,9 +40,9 @@ def generate_balanced_instances_strict(
 if __name__ == "__main__":
     # Parâmetros padrão
     n_values = [10, 20, 30, 40, 50]
-    k_values = [2, 3, 4, 8]
+    k_values = [2, 3, 4, 8, 16]
     b_values = [8, 16, 20]
-    repeat = 30
+    repeat = 20
 
     # Caminho da pasta onde será salvo
     script_dir = os.path.dirname(os.path.abspath(__file__))
