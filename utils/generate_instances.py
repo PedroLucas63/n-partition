@@ -36,6 +36,6 @@ b_values = [5,8,16,20,24,28,32]
 repeat = 10
 
 # Generate instances and save to a file
-generate_instances_to_file("../n_partition_instances.txt", n_values, k_values, b_values, repeat, seed=42)
+generate_instances_to_file("../instances/n_partition_instances.txt", n_values, k_values, b_values, repeat, seed=42)
 
 print("All instances saved to 'n_partition_instances.txt'.")

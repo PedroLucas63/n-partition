@@ -10,5 +10,7 @@ include_directories(${PROJECT_SOURCE_DIR}/include)
 
 # Adiciona o executável
 add_executable(n-partition
+   include/ReadInstances.cpp
+   include/ExperimentRunner.cpp
    src/main.cpp
 )
