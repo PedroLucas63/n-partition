@@ -16,14 +16,14 @@ import java.util.Random;
 public class Main {
 
     public static void main(String[] args) {
-        final int K = 3;
+        final int n = 3;
         final int MAX_OPTIMAL_SUM = 1000;
 
         var random = new Random();
-        int optimalSum = random.nextInt(K, K * MAX_OPTIMAL_SUM + 1) / K;
+        int optimalSum = random.nextInt(n, n * MAX_OPTIMAL_SUM + 1) / n;
         var data = new ArrayList<Integer>();
 
-        for (int i = 0; i < K; i++) {
+        for (int i = 0; i < n; i++) {
             int objectiveSum = optimalSum;
             while (objectiveSum > 0) {
                 int x = random.nextInt(1, objectiveSum + 1);
@@ -37,21 +37,28 @@ public class Main {
 
         // ------------------- Greedy -------------------
         long start = System.nanoTime();
-        var g = Partition.greedy(data, K);
+        var ls = Partition.LS(data, n);
         long end = System.nanoTime();
-        printGroups(g, "Greedy");
-        System.out.println("Greedy time: " + (end - start) / 1_000_000.0 + " ms");
+        printGroups(ls, "List Scheduling");
+        System.out.println("List Scheduling time: " + (end - start) / 1_000_000.0 + " ms");
 
         // ------------------- LPT -------------------
         start = System.nanoTime();
-        var l = Partition.lpt(data, K);
+        var lpt = Partition.LPT(data, n);
         end = System.nanoTime();
-        printGroups(l, "LPT");
-        System.out.println("LPT time: " + (end - start) / 1_000_000.0 + " ms");
+        printGroups(lpt, "Least Processing Time");
+        System.out.println("Least Processing Time time: " + (end - start) / 1_000_000.0 + " ms");
+
+        // ------------------- MULTIFIT -------------------
+        start = System.nanoTime();
+        var mf = Partition.MULTIFIT(data, n);
+        end = System.nanoTime();
+        printGroups(lpt, "MULTIFIT");
+        System.out.println("MULTIFIT time: " + (end - start) / 1_000_000.0 + " ms");
 
         // ------------------- LRM Generic -------------------
         start = System.nanoTime();
-        var e = LRMPartition.lrmGeneric(data, K);
+        var e = LRMPartition.lrmGeneric(data, n);
         end = System.nanoTime();
         printGroups(e, "LRM Generic");
         System.out.println("LRM Generic time: " + (end - start) / 1_000_000.0 + " ms");

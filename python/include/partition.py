@@ -1,41 +1,43 @@
 from typing import List
+import heapq
+import bisect
 
-def greedy(data: List[int], k: int) -> List[List[int]]:
+def LS(arr: List[int], n: int) -> List[List[int]]:
    """
-   Partition a list of integers into k groups using a greedy algorithm.
+   Partition a list of integers into n groups using a list scheduling algorithm.
 
    The algorithm assigns each element to the subset with the current smallest sum.
    This produces a reasonably balanced distribution, but not necessarily optimal.
 
    Parameters
    ----------
-   data : List[int]
+   arr : List[int]
       The list of integers to partition.
-   k : int
+   n : int
       The number of groups to create.
 
    Returns
    -------
    List[List[int]]
-      A list containing k groups (each subset is a list of integers).
+      A list containing n groups (each subset is a list of integers).
    """
-   if k <= 0:
-      raise ValueError("K must be a positive integer")
-   if k == 1:
-      return [data]
+   if n <= 0:
+      raise ValueError("n must be a positive integer")
+   if n == 1:
+      return [arr]
 
-   groups = [[] for _ in range(k)]
-   sums = [0 for _ in range(k)]
+   groups = [[] for _ in range(n)]
+   pq = [(0, i) for i in range(n)]
+   heapq.heapify(pq)
 
-   for value in data:
-      min_idx = sums.index(min(sums))
-      groups[min_idx].append(value)
-      sums[min_idx] += value
+   for x in arr:
+      sum, i = heapq.heappop(pq)
+      groups[i].append(x)
+      heapq.heappush(pq, (sum + x, i))
 
    return groups
 
-
-def lpt(data: List[int], k: int) -> List[List[int]]:
+def LPT(arr: List[int], n: int) -> List[List[int]]:
    """
    Partition a list of integers into k groups using the LPT (Longest Processing Time) heuristic.
 
@@ -44,9 +46,9 @@ def lpt(data: List[int], k: int) -> List[List[int]]:
 
    Parameters
    ----------
-   data : List[int]
+   arr : List[int]
       The list of integers to partition.
-   k : int
+   n : int
       The number of groups to create.
 
    Returns
@@ -54,10 +56,99 @@ def lpt(data: List[int], k: int) -> List[List[int]]:
    List[List[int]]
       A list containing k groups (each subset is a list of integers).
    """
-   if k <= 0:
+   if n <= 0:
       raise ValueError("K must be a positive integer")
-   if k == 1:
-      return [data]
+   if n == 1:
+      return [arr]
 
-   sorted_data = sorted(data, reverse=True)
-   return greedy(sorted_data, k)
+   return LS(sorted(arr, reverse=True), n)
+
+def MULTIFIT(arr: List[int], n: int, k: int = 7) -> List[List[int]]:
+   """
+   Partition a list of integers into k groups using the MULTIFIT (MULTI-FIT) heuristic.
+
+   The algorithm first sorts the list in descending order and then iteratively constructs the final k groups.
+   In each iteration, it computes the average capacity of the groups and delegates to the internal FFD
+   procedure to construct new groups. If the number of groups exceeds k, it updates the lower bound for the next iteration.
+   Otherwise, it updates the upper bound and stores the current groups as the best solution.
+
+   Parameters
+   ----------
+   arr : List[int]
+      The list of integers to partition.
+   n : int
+      The number of groups to create.
+   k : int
+      The number of iterations to run the algorithm (default is 7).
+
+   Returns
+   -------
+   List[List[int]]
+      A list containing k groups (each subset is a list of integers).
+   """
+   if n <= 0:
+      raise ValueError("K must be a positive integer")
+   if n == 1:
+      return [arr]
+   
+   arr = sorted(arr, reverse=True)
+   
+   sum = 0
+   max_val = 0
+   for x in arr:
+      sum += x
+      max_val = max(max_val, x)
+
+   lowerBound = max(max_val, sum // n)
+   upperBound = max(max_val, 2 * sum // n)
+
+   bestGroups = []
+   
+   for _ in range(k):
+      capacity = (lowerBound + upperBound) // 2
+      groups = FFD(arr, capacity)
+
+      if len(groups) > n:
+         lowerBound = capacity
+      else:
+         bestGroups = groups
+         upperBound = capacity
+   
+   return bestGroups
+
+def FFD(arr: List[int], capacity: int) -> List[List[int]]:
+   """
+   First-Fit Decreasing (FFD) algorithm to partition a list of integers into groups
+   with a given capacity.
+
+   The algorithm assigns each element to the subset with the current smallest remaining
+   capacity, in order to balance the groups.
+
+   Parameters
+   ----------
+   arr : List[int]
+      The list of integers to partition.
+   capacity : int
+      The capacity of each group.
+
+   Returns
+   -------
+   List[List[int]]
+      A list containing the partitioned groups of the array.
+   """
+   groups = []
+   remaining = []
+   
+   for x in arr:
+      placed = False
+      for i in range(len(groups)):
+         if remaining[i] >= x:
+            groups[i].append(x)
+            remaining[i] -= x
+            placed = True
+            break
+      if not placed:
+         groups.append([x])
+         remaining.append(capacity - x)
+   
+   return groups
