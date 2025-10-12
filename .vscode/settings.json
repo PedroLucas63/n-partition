@@ -68,5 +68,8 @@
       "text_encoding": "cpp",
       "set": "cpp"
    },
-   "cmake.ignoreCMakeListsMissing": true
+   "cmake.ignoreCMakeListsMissing": true,
+   "python.analysis.extraPaths": [
+      "./utils/plot"
+   ]
 }

@@ -16,12 +16,21 @@ def plot_time_vs_k(csv_file, imgs_dir):
     }
 
     # Cria pasta específica para os gráficos
-    output_dir = os.path.join(imgs_dir, "time_over_k")
+    output_dir = os.path.join(imgs_dir, "boxplot_over_k")
     os.makedirs(output_dir, exist_ok=True)
 
     # Loop para cada heurística
     for algo, col in heuristics.items():
         plt.figure(figsize=(8,5))
+        plt.rcParams.update({
+            'font.size': 16,         # Tamanho geral do texto
+            'axes.titlesize': 16,    # Título dos eixos
+            'axes.labelsize': 16,    # Rótulos dos eixos (x e y)
+            'xtick.labelsize': 16,   # Tamanho dos ticks no eixo x
+            'ytick.labelsize': 16,   # Tamanho dos ticks no eixo y
+            'legend.fontsize': 16,   # Fonte das legendas
+        })
+               
         
         Ks = sorted(df["K"].unique())
         df_box = [df[df["K"]==k][col].values for k in Ks]

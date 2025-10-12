@@ -120,7 +120,7 @@ public:
 
   void run() {
     auto instances = ReadInstances::readInstances();
-    ReadInstances::printInstances(instances);
+    // ReadInstances::printInstances(instances);
 
     for (size_t i = 0; i < instances.size(); ++i) {
       runInstance(instances[i], i + 1);
@@ -140,6 +140,7 @@ private:
       RUN_FOR_K_CSV(4, arr, instanceID, Nval, Kval, Bval, optimalSum, os)
       RUN_FOR_K_CSV(8, arr, instanceID, Nval, Kval, Bval, optimalSum, os)
       RUN_FOR_K_CSV(16, arr, instanceID, Nval, Kval, Bval, optimalSum, os)
+      RUN_FOR_K_CSV(24, arr, instanceID, Nval, Kval, Bval, optimalSum, os)
     default:
       os << "[WARN] Unsupported K = " << K << "\n";
     }
@@ -149,7 +150,7 @@ private:
 
 int main(int, char **) {
   try {
-    ExperimentRunner runner("results.csv");
+    ExperimentRunner runner("../results/results.csv");
     runner.run();
     std::cout << "Experiment completed. Results saved to 'results.csv'.\n";
   } catch (const std::exception &e) {

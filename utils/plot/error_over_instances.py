@@ -26,7 +26,7 @@ def plot_error_over_instance(csv_file, imgs_dir):
     df["MULTIFIT_Error(%)"] = 100 * (df["MULTIFIT_MaxGroupSum"] / df["OptimalMakespan"] - 1)
 
     # Cria pasta específica
-    output_dir = os.path.join(imgs_dir, "error_over_time")
+    output_dir = os.path.join(imgs_dir, "error_over_instances")
     os.makedirs(output_dir, exist_ok=True)
 
     # Cores e marcadores para cada heurística
@@ -39,6 +39,16 @@ def plot_error_over_instance(csv_file, imgs_dir):
     # Loop para gerar um gráfico por heurística
     for algo, style in heuristics.items():
         plt.figure(figsize=(12, 5))
+
+        plt.rcParams.update({
+            'font.size': 16,         # Tamanho geral do texto
+            'axes.titlesize': 16,    # Título dos eixos
+            'axes.labelsize': 16,    # Rótulos dos eixos (x e y)
+            'xtick.labelsize': 16,   # Tamanho dos ticks no eixo x
+            'ytick.labelsize': 16,   # Tamanho dos ticks no eixo y
+            'legend.fontsize': 16,   # Fonte das legendas
+        })
+               
         plt.plot(
             df["InstanceID"],
             df[f"{algo}_Error(%)"],
