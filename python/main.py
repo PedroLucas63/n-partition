@@ -1,68 +1,45 @@
-from include.partition import LS, LPT, MULTIFIT
-from random import randint
-from typing import List
+import time
+import csv
+from include.read_instances import read_instances
+from include.partition import LS, LPT, MULTIFIT  # funções que implementam os algoritmos
 
-def printGroups(groups: List[List[int]], name: str):
-   """
-   Prints the results of the partitioning algorithm.
+def write_results(writer, instance_id, M, N, B, optimal, ls_res, lpt_res, mf_res, ls_time, lpt_time, mf_time):
+   def max_group_sum(groups):
+        return max(sum(g) for g in groups)
+   writer.writerow([
+      instance_id, M, N, B, optimal,
+      max_group_sum(ls_res), int(round(ls_time)),
+      max_group_sum(lpt_res), int(round(lpt_time)),
+      max_group_sum(mf_res), int(round(mf_time))
+   ])
 
-   Parameters
-   ----------
-   groups : List[List[int]]
-      The list of subsets obtained from the partitioning algorithm.
-   name : str
-      The name of the partitioning algorithm used (e.g. "Greedy", "LPT").
-
-   Returns
-   -------
-   None
-   """
-   print(f"\n{'='*3} {name} {'='*3}")
-
-   for i in range(len(groups)):
-      print(f"Group {i+1} (Sum: {sum(groups[i])}): {groups[i]}")
-
-def main():
-   """
-   Main entry point for the partitioning algorithm testing.
-
-   The function generates a list of random integers with a sum of
-   n * (randint(n, n * 1000) // 3, where n is the number of subsets.
-   It then applies the greedy and LPT partitioning algorithms to the data
-   and prints the results.
-
-   Parameters
-   ----------
-   None
-
-   Returns
-   -------
-   None
-   """
-   n = 3
-   MAX_OPTIMAL_SUM = 1000
-   
-   optimalSum = randint(n, n * MAX_OPTIMAL_SUM) // n
-   data = []
-   
-   for _ in range(n):
-      objectiveSum = optimalSum
+def run_experiments(output_path="../results/results.csv"):
+   instances = read_instances()
+   with open(output_path, "w", newline="") as f:
+      writer = csv.writer(f)
+      writer.writerow(["InstanceID","M","N","B","OptimalMakespan",
+                        "LS_MaxGroupSum","LS_Time(us)",
+                        "LPT_MaxGroupSum","LPT_Time(us)",
+                        "MULTIFIT_MaxGroupSum","MULTIFIT_Time(us)"])
       
-      while objectiveSum != 0:
-         x = randint(1, objectiveSum)
-         data.append(x)
-         objectiveSum -= x
+      for i, inst in enumerate(instances, start=1):
+         arr = inst.values
+         start = time.perf_counter()
+         ls_res = LS(arr, inst.N)
+         ls_time = (time.perf_counter() - start) * 1e6
 
-   print(f"Data: {data}")
-   print(f"Optimal sum: {optimalSum}")
-   
-   ls = LS(data, n)
-   lpt = LPT(data, n)
-   mf = MULTIFIT(data, n)
-   
-   printGroups(ls, "List Scheduling")
-   printGroups(lpt, "Longest Processing Time")
-   printGroups(mf, "MULTIFIT")
-   
+         start = time.perf_counter()
+         lpt_res = LPT(arr, inst.N)
+         lpt_time = (time.perf_counter() - start) * 1e6
+
+         start = time.perf_counter()
+         mf_res = MULTIFIT(arr, inst.N)
+         mf_time = (time.perf_counter() - start) * 1e6
+
+         write_results(writer, i, inst.M, inst.N, inst.B, inst.optimal_sum,
+                        ls_res, lpt_res, mf_res, ls_time, lpt_time, mf_time)
+
+
+
 if __name__ == "__main__":
-   main()
+   run_experiments()

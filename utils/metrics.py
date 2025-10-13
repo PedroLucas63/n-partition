@@ -2,7 +2,16 @@ import pandas as pd
 import numpy as np
 
 # Ler o CSV
-df = pd.read_csv("../results/results.csv")
+import os
+import pandas as pd
+
+# Caminho do diretório atual do script
+project_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "results"))
+
+# Caminho completo para o CSV
+csv_path = os.path.join(project_dir, "results.csv")
+
+df = pd.read_csv(csv_path)
 
 # Lista de algoritmos e colunas correspondentes
 algoritmos = {
@@ -43,7 +52,9 @@ for alg, (makespan_col, time_col) in algoritmos.items():
 tabela_metricas = pd.DataFrame(data)
 
 # Salvar CSV
-tabela_metricas.to_csv("../results/metrics.csv", index=False)
+output_path = os.path.join(project_dir, "metrics.csv")
+
+tabela_metricas.to_csv(output_path, index=False)
 
 # Mostrar na tela
 print(tabela_metricas)

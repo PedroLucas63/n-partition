@@ -71,7 +71,7 @@ void writeInstanceCSV(std::ostream &os, size_t instanceID, int N, int Kval, int 
  * 
  */
 
-#define RUN_FOR_K_CSV(KVALUE, ARR, INSTANCEID, NVAL, KVAL, BVAL, OPTIMAL, OS) \
+#define RUN_FOR_K_CSV(KVALUE, ARR, INSTANCEID, MVAL, NVAL, BVAL, OPTIMAL, OS) \
   case KVALUE: { \
     auto start = std::chrono::high_resolution_clock::now(); \
     auto g = partition::LS<KVALUE>(ARR); \
@@ -88,7 +88,7 @@ void writeInstanceCSV(std::ostream &os, size_t instanceID, int N, int Kval, int 
     end = std::chrono::high_resolution_clock::now(); \
     auto multifitTime = std::chrono::duration_cast<std::chrono::microseconds>(end - start).count(); \
     \
-    writeInstanceCSV(OS, INSTANCEID, NVAL, KVAL, BVAL, OPTIMAL, g, greedyTime, l, lptTime, m, multifitTime); \
+    writeInstanceCSV(OS, INSTANCEID, MVAL, NVAL, BVAL, OPTIMAL, g, greedyTime, l, lptTime, m, multifitTime); \
     break; \
   }
 
@@ -115,7 +115,7 @@ public:
     }
 
     // write CSV header
-    outFile << "InstanceID,N,K,B,OptimalMakespan,LS_MaxGroupSum,LS_Time(us),LPT_MaxGroupSum,LPT_Time(us),MULTIFIT_MaxGroupSum,MULTIFIT_Time(us)\n";
+    outFile << "InstanceID,M,N,B,OptimalMakespan,LS_MaxGroupSum,LS_Time(us),LPT_MaxGroupSum,LPT_Time(us),MULTIFIT_MaxGroupSum,MULTIFIT_Time(us)\n";
   }
 
   void run() {
@@ -130,19 +130,19 @@ public:
 private:
   void runInstance(ReadInstances::InstanceData &instance, size_t id) {
 
-    runAlgorithmsByK(instance.K, instance.values, id, instance.N, instance.K, instance.B, instance.optimalSum, outFile);
+    runAlgorithmsByK(instance.values, id, instance.M, instance.N, instance.B, instance.optimalSum, outFile);
   }
 
-  void runAlgorithmsByK(int K, std::vector<int> &arr, size_t instanceID, int Nval, int Kval, int Bval, int optimalSum, std::ostream &os) {
-    switch (K) {
-      RUN_FOR_K_CSV(2, arr, instanceID, Nval, Kval, Bval, optimalSum, os)
-      RUN_FOR_K_CSV(3, arr, instanceID, Nval, Kval, Bval, optimalSum, os)
-      RUN_FOR_K_CSV(4, arr, instanceID, Nval, Kval, Bval, optimalSum, os)
-      RUN_FOR_K_CSV(8, arr, instanceID, Nval, Kval, Bval, optimalSum, os)
-      RUN_FOR_K_CSV(16, arr, instanceID, Nval, Kval, Bval, optimalSum, os)
-      RUN_FOR_K_CSV(24, arr, instanceID, Nval, Kval, Bval, optimalSum, os)
+  void runAlgorithmsByK(std::vector<int> &arr, size_t instanceID, int Mval, int Nval, int Bval, int optimalSum, std::ostream &os) {
+    switch (Nval) {
+      RUN_FOR_K_CSV(2, arr, instanceID, Mval, Nval, Bval, optimalSum, os)
+      RUN_FOR_K_CSV(3, arr, instanceID, Mval, Nval, Bval, optimalSum, os)
+      RUN_FOR_K_CSV(4, arr, instanceID, Mval, Nval, Bval, optimalSum, os)
+      RUN_FOR_K_CSV(8, arr, instanceID, Mval, Nval, Bval, optimalSum, os)
+      RUN_FOR_K_CSV(16, arr, instanceID, Mval, Nval, Bval, optimalSum, os)
+      RUN_FOR_K_CSV(24, arr, instanceID, Mval, Nval, Bval, optimalSum, os)
     default:
-      os << "[WARN] Unsupported K = " << K << "\n";
+      os << "[WARN] Unsupported K = " << Nval << "\n";
     }
   }
 };

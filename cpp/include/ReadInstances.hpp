@@ -6,14 +6,14 @@
 
 namespace ReadInstances {
 
-const std::string INSTANCE_PATH = "../instances/optimal_n_partition_instances.txt";
+const std::string INSTANCE_PATH = "../instances/optimal_m_partition_instances.txt";
 
 /**
  * @brief Structure to store one instance's data.
  */
 struct InstanceData {
-    int N;                   // Number of elements
-    int K;                   // Number of partitions
+    int M;                   // Number of elements
+    int N;                   // Number of partitions
     int B;                   // Number of bits used in number generation
     int optimalSum;          // Known optimal sum per partition
     std::vector<int> values; // List of generated numbers
