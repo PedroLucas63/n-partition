@@ -12,6 +12,8 @@ Realiza teste com base em três algoritmos aproximativos:
 
 ---
 
+## Estrutura Geral 
+
 ```text
 .
 ├───.idea
@@ -130,11 +132,12 @@ python .\utils\metrics.py
 
 Todos os arquivos gerados (gráficos, métricas e resultados brutos) estarão disponíveis na pasta 'results/':
 
+```text
 results/
 ├── imgs/       # Gráficos (Boxplots, Scatter Plots, etc.)
 ├── metrics/    # Métricas calculadas
 └── results.csv # Resultados das execuções em todas as linguagens
-
+```
 
 
 ## License 📄
