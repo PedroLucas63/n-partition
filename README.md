@@ -1,44 +1,22 @@
-# N-Partition System
+# N-Partition Problem
+
+![C++](https://img.shields.io/badge/C%2B%2B-17-blue) ![Python 3.13+](https://img.shields.io/badge/Python-3.13%2B-blue) ![Java](https://img.shields.io/badge/Java-17-blue)
 
 Este projeto implementa e analisa heurísticas aproximativas para o problema da **$n$-partição**, um problema NP-difícil com diversas aplicações práticas, como escalonamento de tarefas e balanceamento de carga. O sistema permite execução em **três linguagens**: C++, Java e Python.
 
----
+Realiza teste com base em três algoritmos aproximativos:
 
-## Linguagens suportadas
-
-O sistema oferece implementações equivalentes em:
-
-1. **C++**
-   - Baseado em `Partition.hpp`, `ReadInstances.hpp` e algoritmos `LS`, `LPT` e `MULTIFIT`.
-   - Compilação e execução via `CMake` ou `g++`.
-
-2. **Java**
-   - Classes organizadas em pacotes:
-     - `experiment` → execução dos experimentos
-     - `partition` → implementação das heurísticas
-     - `utils` → leitura de instâncias e funções auxiliares
-   - Compilação e execução via terminal ou IDEs como IntelliJ.
-
-3. **Python**
-   - Scripts organizados em `include/` e `utils/plot/`.
-   - Dependências: `pandas`, `numpy`, `matplotlib`.
-   - Execução direta via `python main.py`.
+* **LS**: List Scheduling
+* **LPT**: Longest Processing Time
+* **MULTIFIT**: MultiFit Algorithm
 
 ---
-
-## Estrutura de pastas
 
 ```text
 .
 ├───.idea
 ├───.vscode
 ├───cpp
-│   ├───build
-│   │   └───CMakeFiles
-│   │       ├───3.28.3
-│   │       │   └───CompilerIdCXX/tmp
-│   │       ├───n-partition.dir/include
-│   │       └───n-partition.dir/src
 │   ├───include
 │   └───src
 ├───instances
@@ -47,14 +25,124 @@ O sistema oferece implementações equivalentes em:
 │       ├───experiment
 │       ├───partition
 │       └───utils
-├───out/production/n-partition
-│   ├───experiment
-│   ├───partition
-│   └───utils
-├───python/include/__pycache__
+├───python/include/
 ├───results/imgs
-│   ├───boxplot_over_n
-│   ├───error_over_instances
-│   ├───scatter_error
-│   └───scatter_time
-└───utils/plot/__pycache__
+└───utils/plot/
+```
+
+---
+### Pré‑requisitos
+
+* **C++17** ou superior (GCC, Clang, MSVC)
+* **CMake ≥ 3.11.2**
+* **Java 17** ou superior
+* **Python ≥ 3.13**
+
+### Clonar o repositório
+
+```bash
+git clone https://github.com/PedroLucas63/n-partition.git
+cd n-partition
+```
+
+## 🚀 Instruções de Execução
+
+
+### 1. Gerar Instâncias de Teste
+
+Gere as instâncias de dados que serão usadas por todas as implementações. As instâncias serão salvas em 'instances/'.
+
+Comando:
+```bash
+python .\utils\optimal_m_partition_instances.py
+```
+
+### 2.1. Executar Testes em C++
+
+Certifique-se de ter o **CMake** instalado. A execução irá compilar o código e rodar os testes.
+
+```bash
+cd cpp
+cmake -S . -B build
+cmake --build build
+./build/n-partition
+```
+
+### 2.2. Executar Testes em Python
+
+Navegue para o diretório de Python e execute o arquivo principal.
+
+```bash
+cd python
+python main.py
+```
+
+### 2.3. Executar Testes em Java
+
+```bash
+cd java
+javac -d out/production/n-partition src/partition/*.java src/experiment/*.java src/utils/*.java src/Main.java
+java -cp out/production/n-partition Main
+```
+
+### 3. Gerar Gráficos
+
+#### Ambiente Python (opcional, para visualização)
+
+```bash
+python -m venv venv
+source venv/bin/activate     # Linux/macOS
+venv\Scripts\activate        # Windows
+pip install -r requirements.txt
+```
+
+Para sair, basta digitar:
+
+```bash
+deactivate
+```
+
+
+> `requirements.txt` inclui:
+>
+> ```text
+> pandas
+> matplotlib
+> numpy
+> ```
+
+
+Utilize este script para processar os resultados CSV e gerar os gráficos comparativos.
+
+```bash
+python .\utils\run_all_graphs.py
+```
+
+### 4. Calcular Métricas
+
+Calcule métricas de desempenho e erro a partir dos resultados.
+
+```bash
+python .\utils\metrics.py
+```
+
+### 5. Resultados
+
+Todos os arquivos gerados (gráficos, métricas e resultados brutos) estarão disponíveis na pasta 'results/':
+
+results/
+├── imgs/       # Gráficos (Boxplots, Scatter Plots, etc.)
+├── metrics/    # Métricas calculadas
+└── results.csv # Resultados das execuções em todas as linguagens
+
+
+
+## License 📄
+
+MIT License. Veja [LICENSE](LICENSE) para detalhes.
+
+## Contact 📧
+
+Feito com ❤️ por Gabriel Victor e Pedro Lucas
+
+Email: [g.victor.silva01@gmail.com](mailto:g.victor.silva01@gmail.com) e [pedrolucas.jsrn@gmail.com](mailto:pedrolucas.jsrn@gmail.com)

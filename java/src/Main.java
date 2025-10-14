@@ -11,7 +11,7 @@ import experiment.ExperimentRunner;
 public class Main {
 
     public static void main(String[] args) {
-        String outputPath = "results/results.csv";
+        String outputPath = "../results/results.csv";
         ExperimentRunner.run(outputPath);
     }
 
