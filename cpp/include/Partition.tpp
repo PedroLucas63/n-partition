@@ -4,6 +4,9 @@
 #include <set>
 #include <stdexcept>
 #include <tuple>
+#include <cstdint>
+#include <numeric>
+#include <unordered_set>
 
 namespace partition {
 
@@ -61,7 +64,7 @@ std::array<std::vector<int>, n> MULTIFIT(std::vector<int> &arr, unsigned k) {
   std::sort(arr.begin(), arr.end(), std::greater<int>());
 
   int sum = 0, max = 0;
-  for (auto &x : arr) {          
+  for (auto &x : arr) {
     sum += x;
     max = std::max(max, x);
   }
@@ -121,4 +124,77 @@ std::vector<std::vector<int>> FFD(std::vector<int> &arr, unsigned capacity) {
 
   return groups;
 }
+
+template <unsigned n>
+std::array<std::vector<int>, n> CGA(std::vector<int> &arr) {
+  if (n <= 0) {
+    throw std::invalid_argument("n must be a positive integer");
+  } else if (n == 1) {
+    return {{arr}};
+  }
+
+  std::sort(arr.begin(), arr.end(), std::greater<int>());
+
+  std::array<std::vector<int>, n> groups;
+  std::array<int, n> groupSums = {};
+
+  auto [bestSum, bestGroups] =
+      CGABacktracking<n>(arr, groups, groupSums, 0, INT32_MAX);
+  return bestGroups;
+}
+
+template <unsigned n>
+std::pair<int, std::array<std::vector<int>, n>>
+CGABacktracking(std::vector<int> &arr, std::array<std::vector<int>, n> &groups,
+                std::array<int, n> &groupSums, int i, int minSum) {
+  // Base case
+  if (i == arr.size()) {
+    int currentMax = *std::max_element(groupSums.begin(), groupSums.end());
+    return {currentMax, groups};
+  }
+
+  // Sort groups (greedy)
+  std::array<int, n> groupsIndices;
+  std::iota(groupsIndices.begin(), groupsIndices.end(), 0);
+  std::sort(groupsIndices.begin(), groupsIndices.end(), [&groupSums](int i, int j) {
+    return groupSums[i] < groupSums[j];
+  });
+
+  std::array<std::vector<int>, n> groupsCandidate = groups;
+
+  // Backtracking
+  std::unordered_set<int> triedSums;
+  for (int j : groupsIndices) {
+    // Not already tried
+    if (triedSums.count(groupSums[j])) {
+      continue;
+    }
+    triedSums.insert(groupSums[j]);
+
+    groupSums[j] += arr[i];
+    int currentMax = *std::max_element(groupSums.begin(), groupSums.end());
+
+    // Prune
+    if (currentMax < minSum) {
+      groups[j].push_back(arr[i]);
+
+      // Recursion
+      auto [newSum, newGroups] =
+          CGABacktracking<n>(arr, groups, groupSums, i + 1, minSum);
+
+      // Update
+      if (newSum < minSum) {
+        minSum = newSum;
+        groupsCandidate = newGroups;
+      }
+
+      groups[j].pop_back();
+    }
+
+    groupSums[j] -= arr[i];
+  }
+
+  return {minSum, groupsCandidate};
+}
+
 } // namespace partition

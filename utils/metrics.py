@@ -17,7 +17,8 @@ df = pd.read_csv(csv_path)
 algoritmos = {
     "LS": ("LS_MaxGroupSum", "LS_Time(us)"),
     "LPT": ("LPT_MaxGroupSum", "LPT_Time(us)"),
-    "MultiFit": ("MULTIFIT_MaxGroupSum", "MULTIFIT_Time(us)")
+    "MultiFit": ("MULTIFIT_MaxGroupSum", "MULTIFIT_Time(us)"),
+    "CGA": ("CGA_MaxGroupSum", "CGA_Time(us)")
 }
 
 data = []
