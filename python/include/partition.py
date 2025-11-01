@@ -1,6 +1,6 @@
 from typing import List
 import heapq
-import bisect
+import copy
 
 def LS(arr: List[int], n: int) -> List[List[int]]:
    """
@@ -160,19 +160,27 @@ def CGA(arr: List[int], n: int) -> List[List[int]]:
    if n == 1:
       return [arr]
    
-   # Get one solution
+   # Get one solution (heurística inicial)
    groups = LPT(arr, n)
    
    # Get makespan
    makespan = max(map(sum, groups))
    
-   # Get best solution
+   # Get best solution via backtracking
    groupsSums = [0] * n
    actualGroups = [[] for _ in range(n)]
-   makespan, groups = CGABacktracking(arr, actualGroups, groupsSums, makespan, groups, 0)
+   makespan, groups = CGABacktracking(
+      arr, 
+      actualGroups, 
+      groupsSums, 
+      makespan, 
+      copy.deepcopy(groups),
+      0
+   )
    
    # Return best solution
    return groups
+
 
 def CGABacktracking(
    arr: List[int], 
@@ -188,12 +196,12 @@ def CGABacktracking(
       # Update
       if currentMax < makespan:
          makespan = currentMax
-         groupsCandidate = groups
+         groupsCandidate = copy.deepcopy(groups)
       return makespan, groupsCandidate
 
-   # Sort groups
+   # Sort groups by carga atual
    groupsIndices = list(range(len(groups)))
-   groupsIndices.sort(key=lambda i: groupSums[i])
+   groupsIndices.sort(key=lambda idx: groupSums[idx])
    
    # Tried sums
    triedSums = set()
@@ -211,13 +219,13 @@ def CGABacktracking(
 
       # Prune
       if currentMax < makespan:
-         # Update
          groups[j].append(arr[i])
-         makespan, groupsCandidate = CGABacktracking(arr, groups, groupSums, makespan, groupsCandidate, i + 1)
+         makespan, groupsCandidate = CGABacktracking(
+            arr, groups, groupSums, makespan, groupsCandidate, i + 1
+         )
          groups[j].pop()
       
       # Backtrack 
       groupSums[j] -= arr[i]
    
    return makespan, groupsCandidate
-   
