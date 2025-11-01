@@ -1,11 +1,11 @@
 #pragma once
 #include <cmath>
+#include <cstdint>
+#include <numeric>
 #include <queue>
 #include <set>
 #include <stdexcept>
 #include <tuple>
-#include <cstdint>
-#include <numeric>
 #include <unordered_set>
 
 namespace partition {
@@ -127,40 +127,54 @@ std::vector<std::vector<int>> FFD(std::vector<int> &arr, unsigned capacity) {
 
 template <unsigned n>
 std::array<std::vector<int>, n> CGA(std::vector<int> &arr) {
+  // Check if n is valid
   if (n <= 0) {
     throw std::invalid_argument("n must be a positive integer");
   } else if (n == 1) {
     return {{arr}};
   }
 
-  std::sort(arr.begin(), arr.end(), std::greater<int>());
+  // Get one solution
+  auto groups = LPT<n>(arr);
 
-  std::array<std::vector<int>, n> groups;
+  // Get makespan
+  std::array<int, n> sums;
+  std::transform(groups.begin(), groups.end(), sums.begin(),
+                 [](const std::vector<int> &group) {
+                   return std::accumulate(group.begin(), group.end(), 0);
+                 });
+  int makespan = *std::max_element(sums.begin(), sums.end());
+
+  // Get best solution
   std::array<int, n> groupSums = {};
+  std::array<std::vector<int>, n> actualGroups = {};
 
-  auto [bestSum, bestGroups] =
-      CGABacktracking<n>(arr, groups, groupSums, 0, INT32_MAX);
-  return bestGroups;
+  CGABacktracking<n>(arr, actualGroups, groupSums, makespan, groups, 0);
+
+  return groups;
 }
 
 template <unsigned n>
-std::pair<int, std::array<std::vector<int>, n>>
-CGABacktracking(std::vector<int> &arr, std::array<std::vector<int>, n> &groups,
-                std::array<int, n> &groupSums, int i, int minSum) {
+void CGABacktracking(const std::vector<int> &arr,
+                     std::array<std::vector<int>, n> &groups,
+                     std::array<int, n> &groupSums, int &makespan,
+                     std::array<std::vector<int>, n> &groupsCandidate, int i) {
   // Base case
   if (i == arr.size()) {
     int currentMax = *std::max_element(groupSums.begin(), groupSums.end());
-    return {currentMax, groups};
+    // Update
+    if (currentMax < makespan) {
+      makespan = currentMax;
+      groupsCandidate = groups;
+    }
+    return;
   }
 
   // Sort groups (greedy)
   std::array<int, n> groupsIndices;
   std::iota(groupsIndices.begin(), groupsIndices.end(), 0);
-  std::sort(groupsIndices.begin(), groupsIndices.end(), [&groupSums](int i, int j) {
-    return groupSums[i] < groupSums[j];
-  });
-
-  std::array<std::vector<int>, n> groupsCandidate = groups;
+  std::sort(groupsIndices.begin(), groupsIndices.end(),
+            [&groupSums](int i, int j) { return groupSums[i] < groupSums[j]; });
 
   // Backtracking
   std::unordered_set<int> triedSums;
@@ -171,30 +185,21 @@ CGABacktracking(std::vector<int> &arr, std::array<std::vector<int>, n> &groups,
     }
     triedSums.insert(groupSums[j]);
 
+    // Evaluation
     groupSums[j] += arr[i];
     int currentMax = *std::max_element(groupSums.begin(), groupSums.end());
 
     // Prune
-    if (currentMax < minSum) {
-      groups[j].push_back(arr[i]);
-
+    if (currentMax < makespan) {
       // Recursion
-      auto [newSum, newGroups] =
-          CGABacktracking<n>(arr, groups, groupSums, i + 1, minSum);
-
-      // Update
-      if (newSum < minSum) {
-        minSum = newSum;
-        groupsCandidate = newGroups;
-      }
-
+      groups[j].push_back(arr[i]);
+      CGABacktracking<n>(arr, groups, groupSums, makespan, groupsCandidate,
+                         i + 1);
       groups[j].pop_back();
     }
 
     groupSums[j] -= arr[i];
   }
-
-  return {minSum, groupsCandidate};
 }
 
 } // namespace partition

@@ -65,24 +65,25 @@ template <unsigned n>
 std::array<std::vector<int>, n> CGA(std::vector<int> &arr);
 
 /**
- * @brief Template function to partition a given array into n groups using a
- * Complete Greedy Algorithm with Backtracking (CGABacktracking) approach.
+ * @brief A backtracking algorithm to find the optimal partition of the array
+ * into n groups using a Complete Greedy Algorithm (CGA) approach.
  *
- * This function implements a complete greedy algorithm with backtracking to
- * find the optimal partition of the array into n groups.
+ * This function implements a backtracking algorithm to find the optimal
+ * partition of the array into n groups. It uses a complete greedy
+ * algorithm to find the optimal partition.
  *
  * @param arr The array to partition.
- * @param groups The groups to partition the array into.
- * @param groupSums The sums of each group.
- * @param i The current index of the array to process.
- * @param minSum The minimum sum of the groups found so far.
- * @return A pair containing the minimum sum of the groups and the partitioned
- * groups.
+ * @param groups The current partition of the array.
+ * @param groupSums The sum of each group in the current partition.
+ * @param makespan The maximum difference between the sums of the groups.
+ * @param groupsCandidate The current candidate partition.
+ * @param i The current index in the array.
  */
 template <unsigned n>
-std::pair<int, std::array<std::vector<int>, n>>
-CGABacktracking(std::vector<int> &arr, std::array<std::vector<int>, n> &groups,
-                std::array<int, n> &groupSums, int i, int minSum);
+void CGABacktracking(const std::vector<int> &arr,
+                     std::array<std::vector<int>, n> &groups,
+                     std::array<int, n> &groupSums, int &makespan,
+                     std::array<std::vector<int>, n> &groupsCandidate, int i);
 } // namespace partition
 
 #include "Partition.tpp"
