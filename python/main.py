@@ -39,7 +39,5 @@ def run_experiments(output_path="../results/results.csv"):
          write_results(writer, i, inst.M, inst.N, inst.B, inst.optimal_sum,
                         ls_res, lpt_res, mf_res, ls_time, lpt_time, mf_time)
 
-
-
 if __name__ == "__main__":
    run_experiments()

@@ -152,3 +152,72 @@ def FFD(arr: List[int], capacity: int) -> List[List[int]]:
          remaining.append(capacity - x)
    
    return groups
+
+def CGA(arr: List[int], n: int) -> List[List[int]]:
+   # Check if n is valid
+   if n <= 0:
+      raise ValueError("K must be a positive integer")
+   if n == 1:
+      return [arr]
+   
+   # Get one solution
+   groups = LPT(arr, n)
+   
+   # Get makespan
+   makespan = max(map(sum, groups))
+   
+   # Get best solution
+   groupsSums = [0] * n
+   actualGroups = [[] for _ in range(n)]
+   makespan, groups = CGABacktracking(arr, actualGroups, groupsSums, makespan, groups, 0)
+   
+   # Return best solution
+   return groups
+
+def CGABacktracking(
+   arr: List[int], 
+   groups: List[List[int]], 
+   groupSums: List[int], 
+   makespan: int, 
+   groupsCandidate: List[List[int]], 
+   i: int
+):
+   # Base case
+   if i == len(arr):
+      currentMax = max(groupSums)
+      # Update
+      if currentMax < makespan:
+         makespan = currentMax
+         groupsCandidate = groups
+      return makespan, groupsCandidate
+
+   # Sort groups
+   groupsIndices = list(range(len(groups)))
+   groupsIndices.sort(key=lambda i: groupSums[i])
+   
+   # Tried sums
+   triedSums = set()
+   
+   # Backtracking
+   for j in groupsIndices:
+      # Not already tried
+      if groupSums[j] in triedSums:
+         continue
+      triedSums.add(groupSums[j])
+      
+      # Evaluate
+      groupSums[j] += arr[i]
+      currentMax = max(groupSums)
+
+      # Prune
+      if currentMax < makespan:
+         # Update
+         groups[j].append(arr[i])
+         makespan, groupsCandidate = CGABacktracking(arr, groups, groupSums, makespan, groupsCandidate, i + 1)
+         groups[j].pop()
+      
+      # Backtrack 
+      groupSums[j] -= arr[i]
+   
+   return makespan, groupsCandidate
+   

@@ -201,5 +201,4 @@ void CGABacktracking(const std::vector<int> &arr,
     groupSums[j] -= arr[i];
   }
 }
-
 } // namespace partition

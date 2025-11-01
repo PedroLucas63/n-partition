@@ -159,9 +159,7 @@ private:
       RUN_FOR_K_CSV(2, arr, instanceID, Mval, Nval, Bval, optimalSum, os)
       RUN_FOR_K_CSV(3, arr, instanceID, Mval, Nval, Bval, optimalSum, os)
       RUN_FOR_K_CSV(4, arr, instanceID, Mval, Nval, Bval, optimalSum, os)
-      RUN_FOR_K_CSV(8, arr, instanceID, Mval, Nval, Bval, optimalSum, os)
-      RUN_FOR_K_CSV(16, arr, instanceID, Mval, Nval, Bval, optimalSum, os)
-      RUN_FOR_K_CSV(24, arr, instanceID, Mval, Nval, Bval, optimalSum, os)
+      RUN_FOR_K_CSV(5, arr, instanceID, Mval, Nval, Bval, optimalSum, os)
     default:
       os << "[WARN] Unsupported K = " << Nval << "\n";
     }
