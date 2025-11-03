@@ -1,7 +1,7 @@
 import argparse
 import random
 from include.partition import CGA
-from typing import List
+import ast
 
 def get_args() -> argparse.Namespace:
    """
@@ -23,13 +23,51 @@ def get_args() -> argparse.Namespace:
    parse = argparse.ArgumentParser(
       prog="Generate instances tool",
       description="Generate instances for the N-partition problem",
+      epilog="Example: python3 generate-instances.py --file instances.txt --n [2, 3, 4, 5] --m 20 --b [4, 8, 16] --repeat 5 --strategy balanced"
    )
-   parse.add_argument("--file", type=str, required=True, help="Path to output file")
-   parse.add_argument("--n", type=int | List, required=False, default=[2, 3, 4, 5], help="Number of groups")
-   parse.add_argument("--m", type=int, required=False, default=20, help="Maximum number of values to generate")
-   parse.add_argument("--b", type=int | List, required=False, default=[4, 8, 16], help="Number of bits in each value")
-   parse.add_argument("--repeat", type=int, required=False, default=5, help="Number of instances to generate for each configuration")
-   parse.add_argument("--strategy", type=str, required=False, default="balanced", choices=["balanced", "random"], help="Strategy to use for generating the instances. Must be one of 'balanced' or 'random'")
+   parse.add_argument(
+      "--file", 
+      type=str, 
+      required=True, 
+      help="Path to output file"
+   )
+   parse.add_argument(
+      "--n", 
+      type=lambda s: ast.literal_eval(s), 
+      required=False, 
+      default=[2, 3, 4, 5], 
+      help="Number of groups"
+   )
+   parse.add_argument(
+      "--m", 
+      type=int, 
+      required=False, 
+      default=20, 
+      help="Maximum number of values to generate"
+   )
+   parse.add_argument(
+      "--b", 
+      type=lambda s: ast.literal_eval(s), 
+      required=False, 
+      default=[4, 8, 16], 
+      help="Number of bits in each value"
+   )
+   parse.add_argument(
+      "--repeat", 
+      type=int, 
+      required=False, 
+      default=5, 
+      help="Number of instances to generate for each configuration"
+   )
+   parse.add_argument(
+      "--strategy", 
+      type=str, 
+      required=False, 
+      default="balanced", 
+      choices=["balanced", "random"], 
+      help="Strategy to use for generating the instances. Must be one of 'balanced' or 'random'"
+   )
+   
    return parse.parse_args()
 
 def balanced_strategy(
