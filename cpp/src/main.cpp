@@ -1,5 +1,5 @@
+#include "Partition.hpp"
 #include "ReadInstances.hpp"
-#include "partition.hpp"
 #include <chrono>
 #include <fstream>
 #include <iostream>
@@ -105,12 +105,13 @@ void writeInstanceCSV(
     auto c = partition::CGA<KVALUE>(ARR);                                      \
     end = std::chrono::high_resolution_clock::now();                           \
     auto cgaTime =                                                             \
-      std::chrono::duration_cast<std::chrono::microseconds>(end - start).count(); \
+        std::chrono::duration_cast<std::chrono::microseconds>(end - start)     \
+            .count();                                                          \
                                                                                \
-      writeInstanceCSV(OS, INSTANCEID, MVAL, NVAL, BVAL, OPTIMAL, g, greedyTime, l, \
-                      lptTime, m, multifitTime, c, cgaTime);\
-      break;\
-}
+    writeInstanceCSV(OS, INSTANCEID, MVAL, NVAL, BVAL, OPTIMAL, g, greedyTime, \
+                     l, lptTime, m, multifitTime, c, cgaTime);                 \
+    break;                                                                     \
+  }
 
 /**
  * @brief Class responsible for running partitioning experiments on multiple
@@ -134,13 +135,16 @@ public:
     // write CSV header
     outFile
         << "InstanceID,M,N,B,OptimalMakespan,LS_MaxGroupSum,LS_Time(us),LPT_"
-           "MaxGroupSum,LPT_Time(us),MULTIFIT_MaxGroupSum,MULTIFIT_Time(us),CGA_MaxGroupSum,CGA_Time(us)\n";
+           "MaxGroupSum,LPT_Time(us),MULTIFIT_MaxGroupSum,MULTIFIT_Time(us),"
+           "CGA_MaxGroupSum,CGA_Time(us)\n";
   }
 
   void run() {
+    std::cout << "Reading instances...\n";
     auto instances = ReadInstances::readInstances();
     // ReadInstances::printInstances(instances);
 
+    std::cout << "Running experiments...\n";
     for (size_t i = 0; i < instances.size(); ++i) {
       runInstance(instances[i], i + 1);
     }
@@ -148,7 +152,7 @@ public:
 
 private:
   void runInstance(ReadInstances::InstanceData &instance, size_t id) {
-
+    std::cout << "Running instance " << id << "\n";
     runAlgorithmsByK(instance.values, id, instance.M, instance.N, instance.B,
                      instance.optimalSum, outFile);
   }

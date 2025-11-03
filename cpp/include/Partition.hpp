@@ -13,7 +13,7 @@ namespace partition {
  * @param arr The array to partition.
  * @return An array of vectors containing the partitioned groups of the array.
  */
-template <unsigned n> std::array<std::vector<int>, n> LS(std::vector<int> &arr);
+template <int n> std::array<std::vector<int>, n> LS(std::vector<int> &arr);
 
 /**
  * @brief Template function to partition a given array into n groups.
@@ -21,8 +21,7 @@ template <unsigned n> std::array<std::vector<int>, n> LS(std::vector<int> &arr);
  * @param arr The array to partition.
  * @return An array of vectors containing the partitioned groups of the array.
  */
-template <unsigned n>
-std::array<std::vector<int>, n> LPT(std::vector<int> &arr);
+template <int n> std::array<std::vector<int>, n> LPT(std::vector<int> &arr);
 
 /**
  * @brief Template function to partition a given array into n groups using a
@@ -36,8 +35,8 @@ std::array<std::vector<int>, n> LPT(std::vector<int> &arr);
  * @param k The number of iterations to run the algorithm (default is 7).
  * @return An array of vectors containing the partitioned groups of the array.
  */
-template <unsigned n>
-std::array<std::vector<int>, n> MULTIFIT(std::vector<int> &arr, unsigned k = 7);
+template <int n>
+std::array<std::vector<int>, n> MULTIFIT(std::vector<int> &arr, int k = 7);
 
 /**
  * @brief Template function to partition a given array into groups using the
@@ -49,7 +48,7 @@ std::array<std::vector<int>, n> MULTIFIT(std::vector<int> &arr, unsigned k = 7);
  * @param arr The array to partition.
  * @return An array of vectors containing the partitioned groups of the array.
  */
-std::vector<std::vector<int>> FFD(std::vector<int> &arr, unsigned capacity);
+std::vector<std::vector<int>> FFD(std::vector<int> &arr, int capacity);
 
 /**
  * @brief Template function to partition a given array into n groups using a
@@ -61,8 +60,7 @@ std::vector<std::vector<int>> FFD(std::vector<int> &arr, unsigned capacity);
  * @param arr The array to partition.
  * @return An array of vectors containing the partitioned groups of the array.
  */
-template <unsigned n>
-std::array<std::vector<int>, n> CGA(std::vector<int> &arr);
+template <int n> std::array<std::vector<int>, n> CGA(std::vector<int> &arr);
 
 /**
  * @brief A backtracking algorithm to find the optimal partition of the array
@@ -79,7 +77,7 @@ std::array<std::vector<int>, n> CGA(std::vector<int> &arr);
  * @param groupsCandidate The current candidate partition.
  * @param i The current index in the array.
  */
-template <unsigned n>
+template <int n>
 void CGABacktracking(const std::vector<int> &arr,
                      std::array<std::vector<int>, n> &groups,
                      std::array<int, n> &groupSums, int &makespan,

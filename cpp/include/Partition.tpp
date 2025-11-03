@@ -10,8 +10,7 @@
 
 namespace partition {
 
-template <unsigned n>
-std::array<std::vector<int>, n> LS(std::vector<int> &arr) {
+template <int n> std::array<std::vector<int>, n> LS(std::vector<int> &arr) {
   if (n <= 0) {
     throw std::invalid_argument("n must be a positive integer");
   } else if (n == 1) {
@@ -41,8 +40,7 @@ std::array<std::vector<int>, n> LS(std::vector<int> &arr) {
   return groups;
 }
 
-template <unsigned n>
-std::array<std::vector<int>, n> LPT(std::vector<int> &arr) {
+template <int n> std::array<std::vector<int>, n> LPT(std::vector<int> &arr) {
   if (n <= 0) {
     throw std::invalid_argument("n must be a positive integer");
   } else if (n == 1) {
@@ -53,8 +51,8 @@ std::array<std::vector<int>, n> LPT(std::vector<int> &arr) {
   return LS<n>(arr);
 }
 
-template <unsigned n>
-std::array<std::vector<int>, n> MULTIFIT(std::vector<int> &arr, unsigned k) {
+template <int n>
+std::array<std::vector<int>, n> MULTIFIT(std::vector<int> &arr, int k) {
   if (n <= 0) {
     throw std::invalid_argument("n must be a positive integer");
   } else if (n == 1) {
@@ -63,19 +61,16 @@ std::array<std::vector<int>, n> MULTIFIT(std::vector<int> &arr, unsigned k) {
 
   std::sort(arr.begin(), arr.end(), std::greater<int>());
 
-  int sum = 0, max = 0;
-  for (auto &x : arr) {
-    sum += x;
-    max = std::max(max, x);
-  }
+  int sum = std::accumulate(arr.begin(), arr.end(), 0);
+  int max = arr.front();
 
-  unsigned lowerBound = std::max<unsigned>(max, sum / n);
-  unsigned upperBound = std::max<unsigned>(max, 2 * sum / n);
+  int lowerBound = std::max<int>(max, sum / n);
+  int upperBound = std::max<int>(max, 2 * sum / n);
 
   std::vector<std::vector<int>> bestGroups;
 
   for (int i = 0; i < k; i++) {
-    unsigned capacity = (lowerBound + upperBound) / 2;
+    int capacity = (lowerBound + upperBound) / 2;
     auto groups = FFD(arr, capacity);
 
     if (groups.size() > n) {
@@ -87,16 +82,16 @@ std::array<std::vector<int>, n> MULTIFIT(std::vector<int> &arr, unsigned k) {
   }
 
   std::array<std::vector<int>, n> finalGroups;
-  for (int i = 0; i < n; i++) {
+  for (int i = 0; size_t(i) < bestGroups.size(); i++) {
     finalGroups[i] = bestGroups[i];
   }
   return finalGroups;
 }
 
-std::vector<std::vector<int>> FFD(std::vector<int> &arr, unsigned capacity) {
+std::vector<std::vector<int>> FFD(std::vector<int> &arr, int capacity) {
   struct Bin {
-    unsigned remaining;
-    unsigned idx;
+    int remaining;
+    int idx;
     bool operator<(const Bin &other) const {
       return remaining < other.remaining;
     }
@@ -107,12 +102,12 @@ std::vector<std::vector<int>> FFD(std::vector<int> &arr, unsigned capacity) {
 
   for (auto &x : arr) {
     // First bin with remaining capacity >= x
-    auto it = bins.lower_bound(Bin{unsigned(x), unsigned(0)});
+    auto it = bins.lower_bound(Bin{int(x), int(0)});
 
     // No bin with remaining capacity >= x
     if (it == bins.end()) {
       groups.push_back({x});
-      bins.insert(Bin{capacity - x, unsigned(groups.size() - 1)});
+      bins.insert(Bin{capacity - x, int(groups.size() - 1)});
     } else {
       // Bin with remaining capacity >= x
       groups[it->idx].push_back(x);
@@ -125,8 +120,7 @@ std::vector<std::vector<int>> FFD(std::vector<int> &arr, unsigned capacity) {
   return groups;
 }
 
-template <unsigned n>
-std::array<std::vector<int>, n> CGA(std::vector<int> &arr) {
+template <int n> std::array<std::vector<int>, n> CGA(std::vector<int> &arr) {
   // Check if n is valid
   if (n <= 0) {
     throw std::invalid_argument("n must be a positive integer");
@@ -154,13 +148,13 @@ std::array<std::vector<int>, n> CGA(std::vector<int> &arr) {
   return groups;
 }
 
-template <unsigned n>
+template <int n>
 void CGABacktracking(const std::vector<int> &arr,
                      std::array<std::vector<int>, n> &groups,
                      std::array<int, n> &groupSums, int &makespan,
                      std::array<std::vector<int>, n> &groupsCandidate, int i) {
   // Base case
-  if (i == arr.size()) {
+  if (size_t(i) == arr.size()) {
     int currentMax = *std::max_element(groupSums.begin(), groupSums.end());
     // Update
     if (currentMax < makespan) {

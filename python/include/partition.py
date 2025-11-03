@@ -154,6 +154,24 @@ def FFD(arr: List[int], capacity: int) -> List[List[int]]:
    return groups
 
 def CGA(arr: List[int], n: int) -> List[List[int]]:
+   """
+   Complete Greedy Algorithm (CGA) to partition a list of integers into n groups.
+   
+   The algorithm first applies the Longest Processing Time (LPT) heuristic to find an initial solution.
+   Then, it uses backtracking to explore all possible solutions and find the best one.
+   
+   Parameters
+   ----------
+   arr : List[int]
+      The list of integers to partition.
+   n : int
+      The number of groups to create.
+   
+   Returns
+   -------
+   List[List[int]]
+      A list containing the best partitioned groups of the array.
+   """
    # Check if n is valid
    if n <= 0:
       raise ValueError("K must be a positive integer")
@@ -190,6 +208,36 @@ def CGABacktracking(
    groupsCandidate: List[List[int]], 
    i: int
 ):
+   """
+   Backtracking algorithm to find the optimal partition of the array
+   into n groups using a Complete Greedy Algorithm (CGA) approach.
+
+   The algorithm iteratively assigns each element to the group with the
+   current minimum sum, in order to balance the groups. It uses a
+   backtracking approach to explore all possible combinations of groups.
+
+   Parameters
+   ----------
+   arr : List[int]
+      The list of integers to partition.
+   groups : List[List[int]]
+      The current partition of the array.
+   groupSums : List[int]
+      The sum of each group in the current partition.
+   makespan : int
+      The maximum difference between the sums of the groups.
+   groupsCandidate : List[List[int]]
+      The current candidate partition.
+   i : int
+      The current index in the array.
+
+   Returns
+   -------
+   int
+      The maximum difference between the sums of the groups.
+   List[List[int]]
+      The current candidate partition.
+   """
    # Base case
    if i == len(arr):
       currentMax = max(groupSums)

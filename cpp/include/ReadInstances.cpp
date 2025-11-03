@@ -42,10 +42,18 @@ std::vector<InstanceData> readInstances(const std::string &filePath) {
         if (!readingValues && line.find("#") == std::string::npos) {
             std::istringstream iss(line);
             if (iss >> current.M >> current.N >> current.B >> current.optimalSum) {
+                if (current.M <= 0) {
+                    std::cerr << "[ERRO] Valor de M inválido: " << current.M << "\n";
+                    continue;
+                }
+                current.values.clear();
                 readingValues = true;
+            } else {
+                std::cerr << "[ERRO] Linha mal formatada: " << line << "\n";
             }
             continue;
         }
+
 
         // Read the values line
         if (readingValues) {
@@ -57,7 +65,7 @@ std::vector<InstanceData> readInstances(const std::string &filePath) {
             }
             
             // Check if we read all expected values
-            if (valuesCount == current.M) {
+            if (valuesCount == current.N) {
                 instances.push_back(current);
                 readingValues = false;
             }
@@ -66,7 +74,9 @@ std::vector<InstanceData> readInstances(const std::string &filePath) {
 
     // Don't forget to add the last instance if file ends without another header
     if (readingValues && valuesCount == current.M) {
-        instances.push_back(current);
+    instances.push_back(current);
+    } else if (readingValues) {
+        std::cerr << "[ERRO] Instância incompleta ignorada.\n";
     }
 
     file.close();
@@ -78,7 +88,7 @@ void printInstances(const std::vector<InstanceData>& instances) {
     for (size_t i = 0; i < instances.size(); i++) {
         const auto& instance = instances[i];
         std::cout << "Instance " << (i + 1) << ":\n";
-        std::cout << "  M: " << instance.M << ", N: " << instance.N 
+        std::cout << "  N: " << instance.M << ", M: " << instance.M 
                   << ", B: " << instance.B << ", optimalSum: " << instance.optimalSum << "\n";
         std::cout << "  Values: ";
         for (int value : instance.values) {
