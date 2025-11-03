@@ -9,6 +9,20 @@ from mpl_toolkits.mplot3d import Axes3D
 
 # Parse arguments
 def get_args() -> argparse.Namespace:
+   """
+   Parse arguments from command line.
+
+   Returns:
+       argparse.Namespace: A namespace containing the parsed arguments.
+
+   The arguments are:
+
+   --data: Path to data file
+   --output: Path to output directory
+
+   Example:
+   python3 graphs.py --data data.csv --output results
+   """
    parse = argparse.ArgumentParser(
       prog="Graphs tool",
       description="Generate graphs from data",
@@ -20,9 +34,38 @@ def get_args() -> argparse.Namespace:
 
 # Import data function
 def import_data(path: str) -> pd.DataFrame:
+   """
+   Import data from a CSV file.
+
+   Args:
+       path (str): Path to CSV file.
+
+   Returns:
+       pd.DataFrame: DataFrame containing the data from the CSV file.
+   """
    return pd.read_csv(path)
 
 def plot(df: pd.DataFrame, output_path: str):
+   """
+   Generate various graphs from data.
+
+   Args:
+      df (pd.DataFrame): DataFrame containing the data to plot.
+      output_path (str): Path to output directory.
+
+   Returns:
+      None
+
+   Plots the following graphs:
+
+      1. Line graphs comparing algorithms by N, M and B (log scale)
+      2. 3D plots of time vs N, M and B for each algorithm
+      3. Proximity and relative error graphs by N, M and B
+      4. Heatmaps of proximity by N x M for each algorithm
+      5. Score graphs by N, M and B for each algorithm
+
+   The graphs are saved in the output directory specified by the user.
+   """
    os.makedirs(output_path, exist_ok=True)
    
    # Rename columns

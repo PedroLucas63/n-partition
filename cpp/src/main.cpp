@@ -126,7 +126,7 @@ class ExperimentRunner {
   std::ofstream outFile; // CSV output file stream
 
 public:
-  ExperimentRunner(const std::string &outputFileName = "../../results.csv")
+  ExperimentRunner(const std::string &outputFileName = "../../results-balanced.csv")
       : outFile(outputFileName, std::ios::out) {
     if (!outFile.is_open()) {
       throw std::runtime_error("Failed to open output file.");
@@ -172,9 +172,9 @@ private:
 
 int main(int, char **) {
   try {
-    ExperimentRunner runner("../results/results.csv");
+    ExperimentRunner runner("../results/results-balanced.csv");
     runner.run();
-    std::cout << "Experiment completed. Results saved to 'results.csv'.\n";
+    std::cout << "Experiment completed. Results saved to 'results-balanced.csv'.\n";
   } catch (const std::exception &e) {
     std::cerr << "[ERROR] " << e.what() << "\n";
     return EXIT_FAILURE;
