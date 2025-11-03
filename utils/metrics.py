@@ -9,7 +9,7 @@ import pandas as pd
 project_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "results"))
 
 # Caminho completo para o CSV
-csv_path = os.path.join(project_dir, "results.csv")
+csv_path = os.path.join(project_dir, "results-balanced.csv")
 
 df = pd.read_csv(csv_path)
 
@@ -43,9 +43,9 @@ for alg, (makespan_col, time_col) in algoritmos.items():
         "Erro Mínimo (%)": np.min(erro_pct),
         "Erro Máximo (%)": np.max(erro_pct),
         "Soluções Ótimas": solucoes_otimas,
-        "Tempo Médio (ms)": np.mean(tempos),
-        "Tempo Máx (ms)": np.max(tempos),
-        "Tempo Mín (ms)": np.min(tempos)
+        "Tempo Médio (us)": np.mean(tempos),
+        "Tempo Máx (us)": np.max(tempos),
+        "Tempo Mín (us)": np.min(tempos)
     }
     data.append(linha)
 
@@ -53,7 +53,7 @@ for alg, (makespan_col, time_col) in algoritmos.items():
 tabela_metricas = pd.DataFrame(data)
 
 # Salvar CSV
-output_path = os.path.join(project_dir, "metrics.csv")
+output_path = os.path.join(project_dir, "metrics-balanced.csv")
 
 tabela_metricas.to_csv(output_path, index=False)
 
