@@ -9,7 +9,7 @@ import pandas as pd
 project_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "results"))
 
 # Caminho completo para o CSV
-csv_path = os.path.join(project_dir, "random-results.csv")
+csv_path = os.path.join(project_dir, "balanced-results.csv")
 
 df = pd.read_csv(csv_path)
 
@@ -53,7 +53,7 @@ for alg, (makespan_col, time_col) in algoritmos.items():
 tabela_metricas = pd.DataFrame(data)
 
 # Salvar CSV
-output_path = os.path.join(project_dir, "random-metrics.csv")
+output_path = os.path.join(project_dir, "balanced-metrics.csv")
 
 tabela_metricas.to_csv(output_path, index=False)
 
