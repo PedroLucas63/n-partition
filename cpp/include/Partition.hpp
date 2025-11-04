@@ -74,6 +74,7 @@ template <int n> std::array<std::vector<int>, n> CGA(std::vector<int> &arr);
  * @param groups The current partition of the array.
  * @param groupSums The sum of each group in the current partition.
  * @param makespan The maximum difference between the sums of the groups.
+ * @param lowerbound The lower bound of the makespan.
  * @param groupsCandidate The current candidate partition.
  * @param i The current index in the array.
  */
@@ -81,6 +82,7 @@ template <int n>
 void CGABacktracking(const std::vector<int> &arr,
                      std::array<std::vector<int>, n> &groups,
                      std::array<int, n> &groupSums, int &makespan,
+                     int &lowerbound,
                      std::array<std::vector<int>, n> &groupsCandidate, int i);
 } // namespace partition
 

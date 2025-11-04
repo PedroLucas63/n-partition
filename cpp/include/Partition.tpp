@@ -139,11 +139,17 @@ template <int n> std::array<std::vector<int>, n> CGA(std::vector<int> &arr) {
                  });
   int makespan = *std::max_element(sums.begin(), sums.end());
 
-  // Get best solution
-  std::array<int, n> groupSums = {};
-  std::array<std::vector<int>, n> actualGroups = {};
+  // Get makespan lowerbound
+  int total = std::accumulate(arr.begin(), arr.end(), 0);
+  int lowerbound = total % n == 0 ? total / n : total / n + 1;
 
-  CGABacktracking<n>(arr, actualGroups, groupSums, makespan, groups, 0);
+  // Get best solution
+  if (lowerbound < makespan) {
+    std::array<int, n> groupSums = {};
+    std::array<std::vector<int>, n> actualGroups = {};
+    CGABacktracking<n>(arr, actualGroups, groupSums, makespan,
+                       lowerbound, groups, 0);
+  }
 
   return groups;
 }
@@ -152,6 +158,7 @@ template <int n>
 void CGABacktracking(const std::vector<int> &arr,
                      std::array<std::vector<int>, n> &groups,
                      std::array<int, n> &groupSums, int &makespan,
+                     int &lowerbound,
                      std::array<std::vector<int>, n> &groupsCandidate, int i) {
   // Base case
   if (size_t(i) == arr.size()) {
@@ -183,13 +190,18 @@ void CGABacktracking(const std::vector<int> &arr,
     groupSums[j] += arr[i];
     int currentMax = *std::max_element(groupSums.begin(), groupSums.end());
 
-    // Prune
+    // Uperbound prune
     if (currentMax < makespan) {
       // Recursion
       groups[j].push_back(arr[i]);
-      CGABacktracking<n>(arr, groups, groupSums, makespan, groupsCandidate,
+      CGABacktracking<n>(arr, groups, groupSums, makespan, lowerbound, groupsCandidate,
                          i + 1);
-      groups[j].pop_back();
+      groups[j].pop_back(); // Backtrack
+
+      // Lowerbound prune
+      if (makespan == lowerbound) {
+        return;
+      }
     }
 
     groupSums[j] -= arr[i];
