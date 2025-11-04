@@ -43,9 +43,9 @@ for alg, (makespan_col, time_col) in algoritmos.items():
         "Erro Mínimo (%)": np.min(erro_pct),
         "Erro Máximo (%)": np.max(erro_pct),
         "Soluções Ótimas": solucoes_otimas,
-        "Tempo Médio (ms)": np.mean(tempos),
-        "Tempo Máx (ms)": np.max(tempos),
-        "Tempo Mín (ms)": np.min(tempos)
+        "Tempo Médio (us)": np.mean(tempos),
+        "Tempo Máx (us)": np.max(tempos),
+        "Tempo Mín (us)": np.min(tempos)
     }
     data.append(linha)
 

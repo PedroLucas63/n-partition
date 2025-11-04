@@ -80,30 +80,30 @@ void writeInstanceCSV(
 
 #define RUN_FOR_K_CSV(KVALUE, ARR, INSTANCEID, MVAL, NVAL, BVAL, OPTIMAL, OS)  \
   case KVALUE: {                                                               \
-    auto start = std::chrono::high_resolution_clock::now();                    \
+    auto start = std::chrono::steady_clock::now();                    \
     auto g = partition::LS<KVALUE>(ARR);                                       \
-    auto end = std::chrono::high_resolution_clock::now();                      \
+    auto end = std::chrono::steady_clock::now();                      \
     auto greedyTime =                                                          \
         std::chrono::duration_cast<std::chrono::microseconds>(end - start)     \
             .count();                                                          \
                                                                                \
-    start = std::chrono::high_resolution_clock::now();                         \
+    start = std::chrono::steady_clock::now();                         \
     auto l = partition::LPT<KVALUE>(ARR);                                      \
-    end = std::chrono::high_resolution_clock::now();                           \
+    end = std::chrono::steady_clock::now();                           \
     auto lptTime =                                                             \
         std::chrono::duration_cast<std::chrono::microseconds>(end - start)     \
             .count();                                                          \
                                                                                \
-    start = std::chrono::high_resolution_clock::now();                         \
+    start = std::chrono::steady_clock::now();                         \
     auto m = partition::MULTIFIT<KVALUE>(ARR);                                 \
-    end = std::chrono::high_resolution_clock::now();                           \
+    end = std::chrono::steady_clock::now();                           \
     auto multifitTime =                                                        \
         std::chrono::duration_cast<std::chrono::microseconds>(end - start)     \
             .count();                                                          \
                                                                                \
-    start = std::chrono::high_resolution_clock::now();                         \
+    start = std::chrono::steady_clock::now();                         \
     auto c = partition::CGA<KVALUE>(ARR);                                      \
-    end = std::chrono::high_resolution_clock::now();                           \
+    end = std::chrono::steady_clock::now();                           \
     auto cgaTime =                                                             \
         std::chrono::duration_cast<std::chrono::microseconds>(end - start)     \
             .count();                                                          \
@@ -126,7 +126,7 @@ class ExperimentRunner {
   std::ofstream outFile; // CSV output file stream
 
 public:
-  ExperimentRunner(const std::string &outputFileName = "../../results.csv")
+  ExperimentRunner(const std::string &outputFileName = "../../results-balanced.csv")
       : outFile(outputFileName, std::ios::out) {
     if (!outFile.is_open()) {
       throw std::runtime_error("Failed to open output file.");
