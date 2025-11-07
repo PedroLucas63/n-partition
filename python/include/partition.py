@@ -1,6 +1,7 @@
 from typing import List
 import heapq
 import copy
+import math
 
 def LS(arr: List[int], n: int) -> List[List[int]]:
    """
@@ -181,20 +182,29 @@ def CGA(arr: List[int], n: int) -> List[List[int]]:
    # Get one solution (heurística inicial)
    groups = LPT(arr, n)
    
+   # get sums of groups
+   sums = list(map(sum, groups))
+
    # Get makespan
-   makespan = max(map(sum, groups))
+   makespan = max(sums)
+
+   # Get makespan lowerbound
+   total = sum(sums)
+   lowerbound = math.ceil(float(total) / n)
    
-   # Get best solution via backtracking
-   groupsSums = [0] * n
-   actualGroups = [[] for _ in range(n)]
-   makespan, groups = CGABacktracking(
-      arr, 
-      actualGroups, 
-      groupsSums, 
-      makespan, 
-      copy.deepcopy(groups),
-      0
-   )
+   # Get best solution
+   if lowerbound < makespan:
+      groupsSums = [0] * n
+      actualGroups = [[] for _ in range(n)]
+      makespan, groups = CGABacktracking(
+         arr, 
+         actualGroups, 
+         groupsSums, 
+         makespan, 
+         lowerbound,
+         copy.deepcopy(groups),
+         0
+      )
    
    # Return best solution
    return groups
@@ -205,6 +215,7 @@ def CGABacktracking(
    groups: List[List[int]], 
    groupSums: List[int], 
    makespan: int, 
+   lowerbound: int,
    groupsCandidate: List[List[int]], 
    i: int
 ):
@@ -226,6 +237,8 @@ def CGABacktracking(
       The sum of each group in the current partition.
    makespan : int
       The maximum difference between the sums of the groups.
+   lowerbound : int
+      The lower bound of the makespan.
    groupsCandidate : List[List[int]]
       The current candidate partition.
    i : int
@@ -261,17 +274,22 @@ def CGABacktracking(
          continue
       triedSums.add(groupSums[j])
       
-      # Evaluate
+      # Evaluation
       groupSums[j] += arr[i]
       currentMax = max(groupSums)
 
-      # Prune
+      # Uperbound prune
       if currentMax < makespan:
+         # Recursion
          groups[j].append(arr[i])
          makespan, groupsCandidate = CGABacktracking(
-            arr, groups, groupSums, makespan, groupsCandidate, i + 1
+            arr, groups, groupSums, makespan, lowerbound, groupsCandidate, i + 1
          )
-         groups[j].pop()
+         groups[j].pop() # Backtrack
+         
+         # Lowerbound prune
+         if makespan == lowerbound:
+            return makespan, groupsCandidate
       
       # Backtrack 
       groupSums[j] -= arr[i]
