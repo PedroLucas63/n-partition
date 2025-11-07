@@ -2,6 +2,7 @@ package experiment;
 
 import partition.LRMPartition;
 import partition.Partition;
+import utils.ExperimentMode;
 import utils.ReadInstances;
 
 import java.io.FileWriter;
@@ -17,15 +18,16 @@ import java.util.List;
  */
 public class ExperimentRunner {
 
+
     /**
      * Runs all algorithms for each instance and saves results to a CSV file.
      *
      * @param csvPath Output CSV path (e.g., "../results/results.csv")
      */
-    public static void run(String csvPath) {
+    public static void run(String csvPath, ExperimentMode mode) {
         List<ReadInstances.InstanceData> instances;
         try {
-            instances = ReadInstances.readInstances();
+            instances = mode == ExperimentMode.BALANCED_INSTANCES  ? ReadInstances.readInstancesBalanced() : ReadInstances.readInstancesRandom();
         } catch (IOException e) {
             System.err.println("[ERROR] Failed to read instances: " + e.getMessage());
             return;

@@ -32,4 +32,5 @@ bin/
 ### IDEA ###
 .idea
 
+.mvvn
 __pycache__

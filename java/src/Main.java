@@ -1,4 +1,5 @@
 import experiment.ExperimentRunner;
+import utils.ExperimentMode;
 
 /**
  * Demonstration class for testing the Partition algorithms (Greedy and LPT).
@@ -11,8 +12,11 @@ import experiment.ExperimentRunner;
 public class Main {
 
     public static void main(String[] args) {
-        String outputPath = "../results/results.csv";
-        ExperimentRunner.run(outputPath);
+        String outputPathBalanced = "../results/balanced-results.csv";
+        String outputPathRandom = "../results/random-results.csv";
+        
+        ExperimentRunner.run(outputPathBalanced, ExperimentMode.BALANCED_INSTANCES);
+        ExperimentRunner.run(outputPathRandom, ExperimentMode.RANDOM_INSTANCES);
     }
 
 }

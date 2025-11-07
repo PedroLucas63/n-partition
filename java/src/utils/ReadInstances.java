@@ -16,11 +16,17 @@ public class ReadInstances {
         }
     }
 
-    private static final String DEFAULT_PATH = "instances/optimal_m_partition_instances.txt";
+    private static final String DEFAULT_PATH_RANDOM = "instances/random.txt";
+    private static final String DEFAULT_PATH_BALANCED = "instances/balanced.txt";
 
-    public static List<InstanceData> readInstances() throws IOException {
-        return readInstances(DEFAULT_PATH);
+    public static List<InstanceData> readInstancesRandom() throws IOException {
+        return readInstances(DEFAULT_PATH_RANDOM);
     }
+
+    public static List<InstanceData> readInstancesBalanced() throws IOException {
+        return readInstances(DEFAULT_PATH_BALANCED);
+    }
+
 
     public static List<InstanceData> readInstances(String filePath) throws IOException {
         File file = new File(filePath);
