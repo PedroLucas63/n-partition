@@ -37,7 +37,8 @@ public class ExperimentRunner {
                     + "LS_MaxGroupSum,LS_Time(us),"
                     + "LPT_MaxGroupSum,LPT_Time(us),"
                     + "MULTIFIT_MaxGroupSum,MULTIFIT_Time(us),"
-                    + "LRM_MaxGroupSum,LRM_Time(us)\n");
+                    + "LRM_MaxGroupSum,LRM_Time(us),"
+                    + "CGA_MaxGroupSum,CGA_Time(us)\n");
 
             int instanceID = 1;
             for (ReadInstances.InstanceData instance : instances) {
@@ -82,14 +83,21 @@ public class ExperimentRunner {
         end = System.nanoTime();
         long lrmTime = (end - start) / 1000;
 
+        // --- CGA ---
+        start = System.nanoTime();
+        var cga = Partition.CGA(arr, N);
+        end = System.nanoTime();
+        long cgaTime = (end - start) / 1000;
+
         // --- Write results ---
-        writer.write(String.format("%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d%n",
+        writer.write(String.format("%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d%n",
                 instanceID,
                 inst.M, inst.N, inst.B, inst.optimalSum,
                 maxGroupSum(ls), lsTime,
                 maxGroupSum(lpt), lptTime,
                 maxGroupSum(mf), mfTime,
-                maxGroupSum(lrm), lrmTime
+                maxGroupSum(lrm), lrmTime,
+                maxGroupSum(cga), cgaTime
         ));
         writer.flush();
     }

@@ -1,6 +1,9 @@
 package partition;
 
 import java.util.*;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 /**
  * Utility class for partitioning a list of integers into {@code k} groups
@@ -204,4 +207,92 @@ public class Partition {
 
         return groups;
     }
+
+    public static List<List<Integer>> CGA(List<Integer> arr, int n) {
+        if (n <= 0) {
+            throw new IllegalArgumentException("n must be a positive integer");
+        } else if (n == 1) {
+            return List.of(new ArrayList<>(arr));
+        }
+
+        // Get one solution
+        var groups = LPT(arr, n);
+
+        // Get makespan
+        List<Integer> sums = groups.stream()
+                .map(g -> g.stream().reduce(0, Integer::sum))
+                .toList();
+        int makespanInit = sums.stream().mapToInt(Integer::intValue).max().orElse(Integer.MAX_VALUE);
+
+        // Get makespan lowerbound
+        int total = sums.stream().mapToInt(Integer::intValue).sum();
+        int lowerboundInit = (int) Math.ceil((double) total / n);
+
+        // Get best solution
+        if (lowerboundInit < makespanInit) {
+            var groupSums = new ArrayList<Integer>(Collections.nCopies(n, 0));
+            var actualGroups = new ArrayList<List<Integer>>(n);
+            for (int i = 0; i < n; i++) actualGroups.add(new ArrayList<>());
+
+            var makespan = new AtomicInteger(makespanInit);
+            var lowerbound = new AtomicInteger(lowerboundInit);
+
+            CGABacktracking(arr, n, actualGroups, groupSums, makespan,
+                    lowerbound, groups, 0);
+        }
+
+        return groups;
+    }
+
+    private static void CGABacktracking(
+            List<Integer> arr,
+            int n,
+            List<List<Integer>> groups,
+            List<Integer> groupSums,
+            AtomicInteger makespan,
+            AtomicInteger lowerbound,
+            List<List<Integer>> groupsCandidate,
+            int i
+    ) {
+        // Base case
+        if (i == arr.size()) {
+            int currentMax = groupSums.stream().mapToInt(Integer::intValue).max().orElse(Integer.MAX_VALUE);
+
+            if (currentMax < makespan.get()) {
+                makespan.set(currentMax);
+                for (int k = 0; k < n; k++) {
+                    groupsCandidate.set(k, new ArrayList<>(groups.get(k)));
+                }
+            }
+            return;
+        }
+
+        // Sort groups (greedy)
+        List<Integer> groupsIndices = IntStream.range(0, n)
+                .boxed()
+                .sorted(Comparator.comparingInt(groupSums::get))
+                .toList();
+
+        var triedSums = new HashSet<Integer>();
+        for (var j : groupsIndices) {
+            if (triedSums.contains(groupSums.get(j))) continue;
+            triedSums.add(groupSums.get(j));
+
+            // Evaluation
+            groupSums.set(j, groupSums.get(j) + arr.get(i));
+            int currentMax = groupSums.stream().mapToInt(Integer::intValue).max().orElse(Integer.MAX_VALUE);
+
+            if (currentMax < makespan.get()) {
+                groups.get(j).addLast(arr.get(i));
+                CGABacktracking(arr, n, groups, groupSums, makespan,
+                        lowerbound, groupsCandidate, i + 1);
+                groups.get(j).removeLast();
+
+                if (makespan.get() == lowerbound.get()) return;
+            }
+
+            groupSums.set(j, groupSums.get(j) - arr.get(i));
+        }
+    }
+
 }
