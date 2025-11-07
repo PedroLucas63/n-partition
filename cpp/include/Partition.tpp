@@ -163,6 +163,7 @@ void CGABacktracking(const std::vector<int> &arr,
   // Base case
   if (size_t(i) == arr.size()) {
     int currentMax = *std::max_element(groupSums.begin(), groupSums.end());
+    
     // Update
     if (currentMax < makespan) {
       makespan = currentMax;
