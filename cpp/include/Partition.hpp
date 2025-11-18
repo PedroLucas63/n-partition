@@ -84,6 +84,9 @@ void CGABacktracking(const std::vector<int> &arr,
                      std::array<int, n> &groupSums, int &makespan,
                      int &lowerbound,
                      std::array<std::vector<int>, n> &groupsCandidate, int i);
+
+template <int n>
+std::array<std::vector<int>, n> geneticAlgorithm(std::vector<int> &arr);
 } // namespace partition
 
 #include "Partition.tpp"

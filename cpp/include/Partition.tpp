@@ -147,8 +147,8 @@ template <int n> std::array<std::vector<int>, n> CGA(std::vector<int> &arr) {
   if (lowerbound < makespan) {
     std::array<int, n> groupSums = {};
     std::array<std::vector<int>, n> actualGroups = {};
-    CGABacktracking<n>(arr, actualGroups, groupSums, makespan,
-                       lowerbound, groups, 0);
+    CGABacktracking<n>(arr, actualGroups, groupSums, makespan, lowerbound,
+                       groups, 0);
   }
 
   return groups;
@@ -163,7 +163,7 @@ void CGABacktracking(const std::vector<int> &arr,
   // Base case
   if (size_t(i) == arr.size()) {
     int currentMax = *std::max_element(groupSums.begin(), groupSums.end());
-    
+
     // Update
     if (currentMax < makespan) {
       makespan = currentMax;
@@ -195,8 +195,8 @@ void CGABacktracking(const std::vector<int> &arr,
     if (currentMax < makespan) {
       // Recursion
       groups[j].push_back(arr[i]);
-      CGABacktracking<n>(arr, groups, groupSums, makespan, lowerbound, groupsCandidate,
-                         i + 1);
+      CGABacktracking<n>(arr, groups, groupSums, makespan, lowerbound,
+                         groupsCandidate, i + 1);
       groups[j].pop_back(); // Backtrack
 
       // Lowerbound prune
@@ -207,5 +207,195 @@ void CGABacktracking(const std::vector<int> &arr,
 
     groupSums[j] -= arr[i];
   }
+}
+
+template <int n>
+std::array<std::vector<int>, n> geneticAlgorithm(std::vector<int> &arr) {
+  // Definindo constantes:
+  int QUEUE_MAX_SIZE = 10;         // Tamanho máximo da população
+  int INITIAL_POPULATION_SIZE = 4; // Tamanho da população inicial
+  int CROSSOVER_FACTOR = 2; // Fator de crossover (divisor do tamanho do gene)
+  int MUTATION_PROBABILITY = 20; // Probabilidade de mutação em porcentagem
+  int MAX_GENERATIONS_WITHOUT_IMPROVEMENT = 5; // Gerações sem melhoria
+
+  // Definir o formato da população:
+  using Individual = std::pair<std::vector<int>, int>; // (genes, fitness)
+  auto cmp = [](const Individual &a, const Individual &b) {
+    return a.second < b.second;
+  };
+
+  // Criando lista de prioridades para a população:
+  std::multiset<Individual, decltype(cmp)> population(cmp);
+
+  // Definindo função que retorna o makespan de um indivíduo:
+  auto calculateMakespan = [](const std::vector<int> &genes) {
+    auto solution = LS<n>(genes);
+    std::array<int, n> sums;
+    std::transform(solution.begin(), solution.end(), sums.begin(),
+                   [](const std::vector<int> &group) {
+                     return std::accumulate(group.begin(), group.end(), 0);
+                   });
+    return *std::max_element(sums.begin(), sums.end());
+  };
+
+  // Definindo função de adição de indivíduo à população:
+  auto addIndividual = [&](const std::vector<int> &genes) {
+    int fitness = calculateMakespan(genes);
+    population.insert({genes, fitness});
+    if (population.size() > QUEUE_MAX_SIZE) {
+      auto it = std::prev(population.end());
+      population.erase(it);
+    }
+  };
+
+  // Definindo função que escolhe dois indivíduos para crossover:
+  auto selectParents = [&]() -> std::pair<Individual, Individual> {
+    // Calcula os pesos baseados no fitness:
+    std::vector<double> weights;
+    weights.reserve(population.size());
+    for (auto &ind : population) {
+      weights.push_back(1.0 / (ind.second + 1e-9));
+    }
+
+    // Normaliza os pesos:
+    double totalWeight = std::accumulate(weights.begin(), weights.end(), 0.0);
+    for (auto &weight : weights) {
+      weight /= totalWeight;
+    }
+
+    // Gerador de números aleatórios:
+    std::random_device rd;
+    std::mt19937 gen(rd());
+    std::uniform_real_distribution<> dist(0, 1);
+
+    // Função de seleção:
+    auto rouletteSelect = [&](const Individual *exclude) {
+      while (true) {
+        // Seleciona um número aleatório
+        double r = dist(gen);
+        double cumulative = 0.0;
+        for (size_t i = 0; i < population.size(); i++) {
+          // Acumula as probabilidades
+          cumulative += weights[i];
+          if (r <= cumulative) {
+            // Seleciona o indivíduo
+            if (exclude == nullptr || &population[i] != exclude) {
+              return population[i];
+            }
+            break;
+          }
+        }
+      }
+    };
+
+    // Seleciona dois diferentes
+    Individual first = rouletteSelect(nullptr);
+    Individual second = rouletteSelect(&first);
+
+    return {first, second};
+  };
+
+  // Gerando população inicial:
+  for (int i = 0; i < INITIAL_POPULATION_SIZE; i++) {
+    std::vector<int> genes;
+    std::copy(arr.begin(), arr.end(), std::back_inserter(genes));
+    std::shuffle(genes.begin(), genes.end(),
+                 std::mt19937(std::random_device()()));
+    addIndividual(genes);
+  }
+
+  // Definindo quantidade de elementos:
+  std::unordered_multiset<int> elements;
+  std::copy(arr.begin(), arr.end(), std::inserter(elements, elements.begin()));
+
+  // Função de crossover:
+  auto crossover = [&](const Individual &parent1,
+                       const Individual &parent2) -> std::vector<int> {
+    // Cria o filho:
+    std::vector<int> child(parent1.first.size());
+
+    // Cria uma cópia dos elementos disponíveis:
+    std::unordered_multiset<int> elements_copy;
+    std::copy(elements.begin(), elements.end(),
+              std::inserter(elements_copy, elements_copy.begin()));
+
+    // Crossover uniforme:
+    for (size_t i = 0; i < parent1.first.size(); i++) {
+      int candidate;
+      if (i % 2 == 0) {
+        candidate = parent1.first[i];
+      } else {
+        candidate = parent2.first[i];
+      }
+      // Verifica se o elemento está disponível:
+      auto it = elements_copy.find(candidate);
+      if (it != elements_copy.end()) {
+        child[i] = candidate;
+        elements_copy.erase(it);
+      }
+    }
+
+    // Preenche os elementos faltantes:
+    for (auto &element : elements_copy) {
+      child.push_back(element);
+    }
+
+    return child;
+  };
+
+  // Função de mutação:
+  auto mutation = [&](std::vector<int> &genes)
+      -> std::vector<int> {
+    // Gerador de números aleatórios:
+    std::random_device rd;
+    std::mt19937 gen(rd());
+    std::uniform_real_distribution<> dist_probability(0, 1);
+    std::uniform_int_distribution<> dist_index(0, genes.size() - 1);
+
+    // Verifica se deve mutar:
+    while (dist_probability(gen) * 100 < MUTATION_PROBABILITY) {
+      // Seleciona dois índices aleatórios:
+      int idx1 = dist_index(gen);
+      int idx2 = dist_index(gen);
+
+      // Troca os elementos:
+      std::swap(genes[idx1], genes[idx2]);
+    }
+
+    return genes;
+  }
+
+         // Algoritmo genético:
+         int generationsWithoutImprovement =
+             0; // Contador de gerações sem melhoria
+  int bestFitness = population.begin().second; // Melhor fitness
+
+  while (generationsWithoutImprovement < MAX_GENERATIONS_WITHOUT_IMPROVEMENT) {
+    // Seleciona os pais:
+    for (int i = 0; i < population.size() / CROSSOVER_FACTOR; i++) {
+      // Seleção de pais:
+      auto parents = selectParents();
+
+      // Crossover:
+      auto child = crossover(parents.first, parents.second);
+
+      // Mutação:
+      child = mutation(child);
+
+      // Adiciona o filho na população:
+      addIndividual(child);
+    }
+
+    // Verifica melhoria:
+    int currentBestFitness = population.begin()->second;
+    if (currentBestFitness < bestFitness) {
+      bestFitness = currentBestFitness;
+      generationsWithoutImprovement = 0;
+    } else {
+      generationsWithoutImprovement++;
+    }
+  }
+
+  return LS<n>(population.begin()->first);
 }
 } // namespace partition

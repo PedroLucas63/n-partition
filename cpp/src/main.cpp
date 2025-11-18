@@ -42,7 +42,8 @@ void writeInstanceCSV(
     long long lsTime, const std::array<std::vector<int>, K> &lpt,
     long long lptTime, const std::array<std::vector<int>, K> &multifit,
     long long multifitTime, const std::array<std::vector<int>, K> &cga,
-    long long cgaTime) {
+    long long cgaTime, const std::array<std::vector<int>, K> &genetic,
+    long long geneticTime) {
 
   auto maxGroupSum = [](const std::array<std::vector<int>, K> &groups) {
     int maxSum = 0;
@@ -59,8 +60,8 @@ void writeInstanceCSV(
   os << instanceID << "," << N << "," << Kval << "," << B << ","
      << optimalMakespan << "," << maxGroupSum(ls) << "," << lsTime << ","
      << maxGroupSum(lpt) << "," << lptTime << "," << maxGroupSum(multifit)
-     << "," << multifitTime << "," << maxGroupSum(cga) << "," << cgaTime
-     << "\n";
+     << "," << multifitTime << "," << maxGroupSum(cga) << "," << cgaTime << ","
+     << maxGroupSum(genetic) << "," << geneticTime << "\n";
 }
 
 /**
@@ -80,36 +81,44 @@ void writeInstanceCSV(
 
 #define RUN_FOR_K_CSV(KVALUE, ARR, INSTANCEID, MVAL, NVAL, BVAL, OPTIMAL, OS)  \
   case KVALUE: {                                                               \
-    auto start = std::chrono::steady_clock::now();                    \
+    auto start = std::chrono::steady_clock::now();                             \
     auto g = partition::LS<KVALUE>(ARR);                                       \
-    auto end = std::chrono::steady_clock::now();                      \
+    auto end = std::chrono::steady_clock::now();                               \
     auto greedyTime =                                                          \
         std::chrono::duration_cast<std::chrono::microseconds>(end - start)     \
             .count();                                                          \
                                                                                \
-    start = std::chrono::steady_clock::now();                         \
+    start = std::chrono::steady_clock::now();                                  \
     auto l = partition::LPT<KVALUE>(ARR);                                      \
-    end = std::chrono::steady_clock::now();                           \
+    end = std::chrono::steady_clock::now();                                    \
     auto lptTime =                                                             \
         std::chrono::duration_cast<std::chrono::microseconds>(end - start)     \
             .count();                                                          \
                                                                                \
-    start = std::chrono::steady_clock::now();                         \
+    start = std::chrono::steady_clock::now();                                  \
     auto m = partition::MULTIFIT<KVALUE>(ARR);                                 \
-    end = std::chrono::steady_clock::now();                           \
+    end = std::chrono::steady_clock::now();                                    \
     auto multifitTime =                                                        \
         std::chrono::duration_cast<std::chrono::microseconds>(end - start)     \
             .count();                                                          \
                                                                                \
-    start = std::chrono::steady_clock::now();                         \
+    start = std::chrono::steady_clock::now();                                  \
     auto c = partition::CGA<KVALUE>(ARR);                                      \
-    end = std::chrono::steady_clock::now();                           \
+    end = std::chrono::steady_clock::now();                                    \
     auto cgaTime =                                                             \
         std::chrono::duration_cast<std::chrono::microseconds>(end - start)     \
             .count();                                                          \
                                                                                \
+    start = std::chrono::steady_clock::now();                                  \
+    auto gn = partition::geneticAlgorithm<KVALUE>(ARR);                        \
+    end = std::chrono::steady_clock::now();                                    \
+    auto geneticTime =                                                         \
+        std::chrono::duration_cast<std::chrono::microseconds>(end - start)     \
+            .count();                                                          \
+                                                                               \
     writeInstanceCSV(OS, INSTANCEID, MVAL, NVAL, BVAL, OPTIMAL, g, greedyTime, \
-                     l, lptTime, m, multifitTime, c, cgaTime);                 \
+                     l, lptTime, m, multifitTime, c, cgaTime, gn,              \
+                     geneticTime);                                             \
     break;                                                                     \
   }
 
@@ -126,7 +135,8 @@ class ExperimentRunner {
   std::ofstream outFile; // CSV output file stream
 
 public:
-  ExperimentRunner(const std::string &outputFileName = "../../results-balanced.csv")
+  ExperimentRunner(
+      const std::string &outputFileName = "../../results-balanced.csv")
       : outFile(outputFileName, std::ios::out) {
     if (!outFile.is_open()) {
       throw std::runtime_error("Failed to open output file.");
@@ -136,7 +146,8 @@ public:
     outFile
         << "InstanceID,M,N,B,OptimalMakespan,LS_MaxGroupSum,LS_Time(us),LPT_"
            "MaxGroupSum,LPT_Time(us),MULTIFIT_MaxGroupSum,MULTIFIT_Time(us),"
-           "CGA_MaxGroupSum,CGA_Time(us)\n";
+           "CGA_MaxGroupSum,CGA_Time(us),Genetic_MaxGroupSum,Genetic_Time(us)"
+           "\n";
   }
 
   void run() {
@@ -174,7 +185,8 @@ int main(int, char **) {
   try {
     ExperimentRunner runner("../results/random-results.csv");
     runner.run();
-    std::cout << "Experiment completed. Results saved to 'random-results.csv'.\n";
+    std::cout
+        << "Experiment completed. Results saved to 'random-results.csv'.\n";
   } catch (const std::exception &e) {
     std::cerr << "[ERROR] " << e.what() << "\n";
     return EXIT_FAILURE;
