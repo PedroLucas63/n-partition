@@ -183,10 +183,10 @@ private:
 
 int main(int, char **) {
   try {
-    ExperimentRunner runner("../results/random-results.csv");
+    ExperimentRunner runner("../results/balanced-results.csv");
     runner.run();
     std::cout
-        << "Experiment completed. Results saved to 'random-results.csv'.\n";
+        << "Experiment completed. Results saved to 'balanced-results.csv'.\n";
   } catch (const std::exception &e) {
     std::cerr << "[ERROR] " << e.what() << "\n";
     return EXIT_FAILURE;

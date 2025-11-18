@@ -85,6 +85,17 @@ void CGABacktracking(const std::vector<int> &arr,
                      int &lowerbound,
                      std::array<std::vector<int>, n> &groupsCandidate, int i);
 
+
+/**
+ * @brief Template function to partition a given array into n groups using a
+ * genetic algorithm approach.
+ *
+ * This function implements a genetic algorithm to find the optimal partition
+ * of the array into n groups.
+ *
+ * @param arr The array to partition.
+ * @return An array of vectors containing the partitioned groups of the array.
+ */
 template <int n>
 std::array<std::vector<int>, n> geneticAlgorithm(std::vector<int> &arr);
 } // namespace partition
