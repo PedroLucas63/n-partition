@@ -11,23 +11,24 @@
 
 namespace partition {
 
-template <int n> std::array<std::vector<int>, n> LS(std::vector<int> &arr) {
+template <std::size_t n>
+std::array<std::vector<ValueType>, n> LS(std::vector<ValueType> &arr) {
   if (n <= 0) {
     throw std::invalid_argument("n must be a positive integer");
   } else if (n == 1) {
     return {{arr}};
   }
 
-  std::array<std::vector<int>, n> groups;
+  std::array<std::vector<ValueType>, n> groups;
 
-  using queue_element = std::pair<int, int>; // {sum, index}
+  using queue_element = std::pair<ValueType, std::size_t>; // {sum, index}
   auto cmp = [](const queue_element &a, const queue_element &b) {
     return a.first > b.first;
   };
   std::priority_queue<queue_element, std::vector<queue_element>, decltype(cmp)>
       pq(cmp);
 
-  for (int i = 0; i < n; i++) {
+  for (std::size_t i = 0; i < n; i++) {
     pq.push({0, i});
   }
 
@@ -41,37 +42,39 @@ template <int n> std::array<std::vector<int>, n> LS(std::vector<int> &arr) {
   return groups;
 }
 
-template <int n> std::array<std::vector<int>, n> LPT(std::vector<int> &arr) {
+template <std::size_t n>
+std::array<std::vector<ValueType>, n> LPT(std::vector<ValueType> &arr) {
   if (n <= 0) {
     throw std::invalid_argument("n must be a positive integer");
   } else if (n == 1) {
     return {{arr}};
   }
 
-  std::sort(arr.begin(), arr.end(), std::greater<int>());
+  std::sort(arr.begin(), arr.end(), std::greater<ValueType>());
   return LS<n>(arr);
 }
 
-template <int n>
-std::array<std::vector<int>, n> MULTIFIT(std::vector<int> &arr, int k) {
+template <std::size_t n>
+std::array<std::vector<ValueType>, n> MULTIFIT(std::vector<ValueType> &arr,
+                                               std::size_t k) {
   if (n <= 0) {
     throw std::invalid_argument("n must be a positive integer");
   } else if (n == 1) {
     return {{arr}};
   }
 
-  std::sort(arr.begin(), arr.end(), std::greater<int>());
+  std::sort(arr.begin(), arr.end(), std::greater<ValueType>());
 
-  int sum = std::accumulate(arr.begin(), arr.end(), 0);
-  int max = arr.front();
+  ValueType sum = std::accumulate(arr.begin(), arr.end(), 0);
+  ValueType max = arr.front();
 
-  int lowerBound = std::max<int>(max, sum / n);
-  int upperBound = std::max<int>(max, 2 * sum / n);
+  ValueType lowerBound = std::max<ValueType>(max, sum / n);
+  ValueType upperBound = std::max<ValueType>(max, 2 * sum / n);
 
-  std::vector<std::vector<int>> bestGroups;
+  std::vector<std::vector<ValueType>> bestGroups;
 
-  for (int i = 0; i < k; i++) {
-    int capacity = (lowerBound + upperBound) / 2;
+  for (std::size_t i = 0; i < k; i++) {
+    ValueType capacity = (lowerBound + upperBound) / 2;
     auto groups = FFD(arr, capacity);
 
     if (groups.size() > n) {
@@ -82,46 +85,15 @@ std::array<std::vector<int>, n> MULTIFIT(std::vector<int> &arr, int k) {
     }
   }
 
-  std::array<std::vector<int>, n> finalGroups;
-  for (int i = 0; size_t(i) < bestGroups.size(); i++) {
+  std::array<std::vector<ValueType>, n> finalGroups;
+  for (std::size_t i = 0; size_t(i) < bestGroups.size(); i++) {
     finalGroups[i] = bestGroups[i];
   }
   return finalGroups;
 }
 
-std::vector<std::vector<int>> FFD(std::vector<int> &arr, int capacity) {
-  struct Bin {
-    int remaining;
-    int idx;
-    bool operator<(const Bin &other) const {
-      return remaining < other.remaining;
-    }
-  };
-
-  std::vector<std::vector<int>> groups;
-  std::multiset<Bin> bins;
-
-  for (auto &x : arr) {
-    // First bin with remaining capacity >= x
-    auto it = bins.lower_bound(Bin{int(x), int(0)});
-
-    // No bin with remaining capacity >= x
-    if (it == bins.end()) {
-      groups.push_back({x});
-      bins.insert(Bin{capacity - x, int(groups.size() - 1)});
-    } else {
-      // Bin with remaining capacity >= x
-      groups[it->idx].push_back(x);
-      Bin newBin{it->remaining - x, it->idx};
-      bins.erase(it);
-      bins.insert(newBin);
-    }
-  }
-
-  return groups;
-}
-
-template <int n> std::array<std::vector<int>, n> CGA(std::vector<int> &arr) {
+template <std::size_t n>
+std::array<std::vector<ValueType>, n> CGA(std::vector<ValueType> &arr) {
   // Check if n is valid
   if (n <= 0) {
     throw std::invalid_argument("n must be a positive integer");
@@ -133,21 +105,21 @@ template <int n> std::array<std::vector<int>, n> CGA(std::vector<int> &arr) {
   auto groups = LPT<n>(arr);
 
   // Get makespan
-  std::array<int, n> sums;
+  std::array<ValueType, n> sums;
   std::transform(groups.begin(), groups.end(), sums.begin(),
-                 [](const std::vector<int> &group) {
+                 [](const std::vector<ValueType> &group) {
                    return std::accumulate(group.begin(), group.end(), 0);
                  });
-  int makespan = *std::max_element(sums.begin(), sums.end());
+  ValueType makespan = *std::max_element(sums.begin(), sums.end());
 
   // Get makespan lowerbound
-  int total = std::accumulate(arr.begin(), arr.end(), 0);
-  int lowerbound = total % n == 0 ? total / n : total / n + 1;
+  ValueType total = std::accumulate(arr.begin(), arr.end(), 0);
+  ValueType lowerbound = total % n == 0 ? total / n : total / n + 1;
 
   // Get best solution
   if (lowerbound < makespan) {
-    std::array<int, n> groupSums = {};
-    std::array<std::vector<int>, n> actualGroups = {};
+    std::array<ValueType, n> groupSums = {};
+    std::array<std::vector<ValueType>, n> actualGroups = {};
     CGABacktracking<n>(arr, actualGroups, groupSums, makespan, lowerbound,
                        groups, 0);
   }
@@ -155,15 +127,17 @@ template <int n> std::array<std::vector<int>, n> CGA(std::vector<int> &arr) {
   return groups;
 }
 
-template <int n>
-void CGABacktracking(const std::vector<int> &arr,
-                     std::array<std::vector<int>, n> &groups,
-                     std::array<int, n> &groupSums, int &makespan,
-                     int &lowerbound,
-                     std::array<std::vector<int>, n> &groupsCandidate, int i) {
+template <std::size_t n>
+void CGABacktracking(const std::vector<ValueType> &arr,
+                     std::array<std::vector<ValueType>, n> &groups,
+                     std::array<ValueType, n> &groupSums, ValueType &makespan,
+                     ValueType &lowerbound,
+                     std::array<std::vector<ValueType>, n> &groupsCandidate,
+                     std::size_t i) {
   // Base case
   if (size_t(i) == arr.size()) {
-    int currentMax = *std::max_element(groupSums.begin(), groupSums.end());
+    ValueType currentMax =
+        *std::max_element(groupSums.begin(), groupSums.end());
 
     // Update
     if (currentMax < makespan) {
@@ -174,14 +148,16 @@ void CGABacktracking(const std::vector<int> &arr,
   }
 
   // Sort groups (greedy)
-  std::array<int, n> groupsIndices;
+  std::array<ValueType, n> groupsIndices;
   std::iota(groupsIndices.begin(), groupsIndices.end(), 0);
   std::sort(groupsIndices.begin(), groupsIndices.end(),
-            [&groupSums](int i, int j) { return groupSums[i] < groupSums[j]; });
+            [&groupSums](std::size_t i, std::size_t j) {
+              return groupSums[i] < groupSums[j];
+            });
 
   // Backtracking
-  std::unordered_set<int> triedSums;
-  for (int j : groupsIndices) {
+  std::unordered_set<ValueType> triedSums;
+  for (std::size_t j : groupsIndices) {
     // Not already tried
     if (triedSums.count(groupSums[j])) {
       continue;
@@ -190,7 +166,8 @@ void CGABacktracking(const std::vector<int> &arr,
 
     // Evaluation
     groupSums[j] += arr[i];
-    int currentMax = *std::max_element(groupSums.begin(), groupSums.end());
+    ValueType currentMax =
+        *std::max_element(groupSums.begin(), groupSums.end());
 
     // Uperbound prune
     if (currentMax < makespan) {
@@ -210,17 +187,22 @@ void CGABacktracking(const std::vector<int> &arr,
   }
 }
 
-template <int n>
-std::array<std::vector<int>, n> geneticAlgorithm(std::vector<int> &arr) {
+template <std::size_t n>
+std::array<std::vector<ValueType>, n>
+geneticAlgorithm(std::vector<ValueType> &arr) {
   // --- Constantes ---
-  const int QUEUE_MAX_SIZE = 10;
-  const int INITIAL_POPULATION_SIZE = 4;
+  const int QUEUE_MAX_SIZE = 50;
+  const int INITIAL_POPULATION_SIZE = 20;
   const int CROSSOVER_FACTOR = 2;
-  const int MUTATION_PROBABILITY = 20; // percentage
+  const int MUTATION_PROBABILITY = 40; // percentage
   const int MAX_GENERATIONS_WITHOUT_IMPROVEMENT = 5;
-  const int MAX_MUTATION_SWAPS = 3; // safety cap
 
-  using Individual = std::pair<std::vector<int>, int>; // (genes, fitness)
+  // -- Calcula o makespan ótimo --
+  ValueType sum = std::accumulate(arr.begin(), arr.end(), 0);
+  const ValueType makespan_opt = std::ceil(double(sum) / n);
+
+  using Individual =
+      std::pair<std::vector<ValueType>, ValueType>; // (genes, fitness)
 
   // Menor fitness = melhor indivíduo
   auto cmp = [](const Individual &a, const Individual &b) {
@@ -233,27 +215,27 @@ std::array<std::vector<int>, n> geneticAlgorithm(std::vector<int> &arr) {
   std::random_device rd;
   std::mt19937 gen(rd());
   std::uniform_real_distribution<double> dist01(0.0, 1.0);
-  // dist for mutation decision (0..99)
   std::uniform_int_distribution<int> distPercent(0, 99);
 
   // --- Função auxiliar: makespan (usa o genes passado) ---
-  auto calculateMakespan = [&](const std::vector<int> &genes) {
-    std::vector<int> tmp = genes;
+  auto calculateMakespan = [&](const std::vector<ValueType> &genes) {
+    std::vector<ValueType> tmp = genes;
     auto solution = LS<n>(tmp);
 
-    std::array<int, n> sums;
-    for (int i = 0; i < n; ++i)
+    std::array<ValueType, n> sums;
+    for (std::size_t i = 0; i < n; ++i)
       sums[i] = std::accumulate(solution[i].begin(), solution[i].end(), 0);
 
     return *std::max_element(sums.begin(), sums.end());
   };
 
   // --- Adicionar indivíduo (com poda para QUEUE_MAX_SIZE) ---
-  auto addIndividual = [&](const std::vector<int> &genes) {
-    int fitness = calculateMakespan(genes);
+  auto addIndividual = [&](const std::vector<ValueType> &genes) {
+    ValueType fitness = calculateMakespan(genes);
     population.insert({genes, fitness});
+
     if ((int)population.size() > QUEUE_MAX_SIZE) {
-      auto it = std::prev(population.end()); // pior indivíduo (maior fitness)
+      auto it = std::prev(population.end());
       population.erase(it);
     }
   };
@@ -299,7 +281,7 @@ std::array<std::vector<int>, n> geneticAlgorithm(std::vector<int> &arr) {
   };
 
   // --- População inicial ---
-  std::vector<int> work = arr;
+  std::vector<ValueType> work = arr;
   for (int i = 0; i < INITIAL_POPULATION_SIZE; ++i) {
     addIndividual(work);
     std::shuffle(work.begin(), work.end(), gen);
@@ -307,22 +289,23 @@ std::array<std::vector<int>, n> geneticAlgorithm(std::vector<int> &arr) {
 
   // garante que population não está vazia
   if (population.empty()) {
-    std::vector<int> tmp = arr;
+    std::vector<ValueType> tmp = arr;
     return LS<n>(tmp);
   }
 
   // multiset com todos os elementos possíveis (para crossover)
-  std::unordered_multiset<int> elements(arr.begin(), arr.end());
+  std::multiset<ValueType, std::greater<ValueType>> elements(arr.begin(),
+                                                             arr.end());
 
   // --- Crossover (uniform-like, preserva multiconjunto) ---
   auto crossover = [&](const Individual &p1, const Individual &p2) {
     size_t L = p1.first.size();
-    std::vector<int> child(L, -1);
+    std::vector<ValueType> child(L, -1);
 
-    std::unordered_multiset<int> available(elements);
+    std::multiset<ValueType, std::greater<ValueType>> available(elements);
 
     for (size_t i = 0; i < L; ++i) {
-      int candidate = (i % 2 == 0 ? p1.first[i] : p2.first[i]);
+      ValueType candidate = (i % 2 == 0 ? p1.first[i] : p2.first[i]);
       auto it = available.find(candidate);
       if (it != available.end()) {
         child[i] = candidate;
@@ -340,17 +323,14 @@ std::array<std::vector<int>, n> geneticAlgorithm(std::vector<int> &arr) {
     return child;
   };
 
-  // --- Mutação (limitada, evita loop infinito) ---
-  auto mutation = [&](std::vector<int> genes) {
-    if (distPercent(gen) < MUTATION_PROBABILITY) {
-      std::uniform_int_distribution<size_t> idxDist(0, genes.size() - 1);
-      int swaps = 1 + (distPercent(gen) % MAX_MUTATION_SWAPS);
+  // --- Mutação ---
+  auto mutation = [&](std::vector<ValueType> genes) {
+    std::uniform_int_distribution<size_t> idxDist(0, genes.size() - 1);
 
-      for (int s = 0; s < swaps; ++s) {
-        size_t a = idxDist(gen);
-        size_t b = idxDist(gen);
-        std::swap(genes[a], genes[b]);
-      }
+    while (distPercent(gen) < MUTATION_PROBABILITY) {
+      size_t a = idxDist(gen);
+      size_t b = idxDist(gen);
+      std::swap(genes[a], genes[b]);
     }
 
     return genes;
@@ -358,7 +338,7 @@ std::array<std::vector<int>, n> geneticAlgorithm(std::vector<int> &arr) {
 
   // --- Evolução ---
   int generationsWithoutImprovement = 0;
-  int bestFitness = std::numeric_limits<int>::max();
+  ValueType bestFitness = std::numeric_limits<int>::max();
 
   // inicializa bestFitness a partir do melhor atual
   bestFitness = population.begin()->second;
@@ -374,18 +354,22 @@ std::array<std::vector<int>, n> geneticAlgorithm(std::vector<int> &arr) {
       addIndividual(child);
     }
 
-    int currentBest = population.begin()->second;
+    ValueType currentBest = population.begin()->second;
     if (currentBest < bestFitness) {
       bestFitness = currentBest;
       generationsWithoutImprovement = 0;
     } else {
       ++generationsWithoutImprovement;
     }
+
+    if (bestFitness == makespan_opt) {
+      break;
+    }
   }
 
   // --- Retorna solução LS do melhor indivíduo ---
-  const std::vector<int> &bestGenes = population.begin()->first;
-  std::vector<int> bestCopy = bestGenes;
+  const std::vector<ValueType> &bestGenes = population.begin()->first;
+  std::vector<ValueType> bestCopy = bestGenes;
   return LS<n>(bestCopy);
 }
 } // namespace partition

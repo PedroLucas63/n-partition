@@ -8,7 +8,8 @@
 /// @param os Output stream.
 /// @param v Vector of integers.
 /// @return Output stream.
-std::ostream &operator<<(std::ostream &os, const std::vector<int> &v) {
+std::ostream &operator<<(std::ostream &os,
+                         const std::vector<partition::ValueType> &v) {
   os << "[";
   for (auto &x : v) {
     os << x << " ";
@@ -38,24 +39,30 @@ std::ostream &operator<<(std::ostream &os, const std::vector<int> &v) {
 template <size_t K>
 void writeInstanceCSV(
     std::ostream &os, size_t instanceID, int N, int Kval, int B,
-    int optimalMakespan, const std::array<std::vector<int>, K> &ls,
-    long long lsTime, const std::array<std::vector<int>, K> &lpt,
-    long long lptTime, const std::array<std::vector<int>, K> &multifit,
-    long long multifitTime, const std::array<std::vector<int>, K> &cga,
-    long long cgaTime, const std::array<std::vector<int>, K> &genetic,
+    partition::ValueType optimalMakespan,
+    const std::array<std::vector<partition::ValueType>, K> &ls,
+    long long lsTime,
+    const std::array<std::vector<partition::ValueType>, K> &lpt,
+    long long lptTime,
+    const std::array<std::vector<partition::ValueType>, K> &multifit,
+    long long multifitTime,
+    const std::array<std::vector<partition::ValueType>, K> &cga,
+    long long cgaTime,
+    const std::array<std::vector<partition::ValueType>, K> &genetic,
     long long geneticTime) {
 
-  auto maxGroupSum = [](const std::array<std::vector<int>, K> &groups) {
-    int maxSum = 0;
-    for (auto &group : groups) {
-      int sum = 0;
-      for (int x : group)
-        sum += x;
-      if (sum > maxSum)
-        maxSum = sum;
-    }
-    return maxSum;
-  };
+  auto maxGroupSum =
+      [](const std::array<std::vector<partition::ValueType>, K> &groups) {
+        partition::ValueType maxSum = 0;
+        for (auto &group : groups) {
+          partition::ValueType sum = 0;
+          for (partition::ValueType x : group)
+            sum += x;
+          if (sum > maxSum)
+            maxSum = sum;
+        }
+        return maxSum;
+      };
 
   os << instanceID << "," << N << "," << Kval << "," << B << ","
      << optimalMakespan << "," << maxGroupSum(ls) << "," << lsTime << ","
@@ -168,13 +175,15 @@ private:
                      instance.optimalSum, outFile);
   }
 
-  void runAlgorithmsByK(std::vector<int> &arr, size_t instanceID, int Mval,
-                        int Nval, int Bval, int optimalSum, std::ostream &os) {
+  void runAlgorithmsByK(std::vector<partition::ValueType> &arr,
+                        size_t instanceID, int Mval, int Nval, int Bval,
+                        partition::ValueType optimalSum, std::ostream &os) {
     switch (Nval) {
       RUN_FOR_K_CSV(2, arr, instanceID, Mval, Nval, Bval, optimalSum, os)
       RUN_FOR_K_CSV(3, arr, instanceID, Mval, Nval, Bval, optimalSum, os)
       RUN_FOR_K_CSV(4, arr, instanceID, Mval, Nval, Bval, optimalSum, os)
       RUN_FOR_K_CSV(5, arr, instanceID, Mval, Nval, Bval, optimalSum, os)
+      RUN_FOR_K_CSV(8, arr, instanceID, Mval, Nval, Bval, optimalSum, os)
     default:
       os << "[WARN] Unsupported K = " << Nval << "\n";
     }
@@ -183,10 +192,10 @@ private:
 
 int main(int, char **) {
   try {
-    ExperimentRunner runner("../results/balanced-results.csv");
+    ExperimentRunner runner("../results/random-results.csv");
     runner.run();
     std::cout
-        << "Experiment completed. Results saved to 'balanced-results.csv'.\n";
+        << "Experiment completed. Results saved to 'random-results.csv'.\n";
   } catch (const std::exception &e) {
     std::cerr << "[ERROR] " << e.what() << "\n";
     return EXIT_FAILURE;

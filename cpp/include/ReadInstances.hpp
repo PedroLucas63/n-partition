@@ -3,10 +3,11 @@
 
 #include <vector>
 #include <string>
+#include "Partition.hpp"
 
 namespace ReadInstances {
 
-const std::string INSTANCE_PATH = "../instances/balanced.txt";
+const std::string INSTANCE_PATH = "../instances/random.txt";
 
 /**
  * @brief Structure to store one instance's data.
@@ -15,8 +16,8 @@ struct InstanceData {
     int M;                   // Number of elements
     int N;                   // Number of partitions
     int B;                   // Number of bits used in number generation
-    int optimalSum;          // Known optimal sum per partition
-    std::vector<int> values; // List of generated numbers
+    partition::ValueType optimalSum;          // Known optimal sum per partition
+    std::vector<partition::ValueType> values; // List of generated numbers
 };
 
 /**

@@ -4,8 +4,13 @@
 #include <algorithm>
 #include <array>
 #include <vector>
+#include <cstdint>
 
 namespace partition {
+
+// Define ValueType as uint64_t;
+using ValueType = uint64_t;
+
 /**
  * @brief Template function to partition a given array into n groups.
  *
@@ -13,7 +18,8 @@ namespace partition {
  * @param arr The array to partition.
  * @return An array of vectors containing the partitioned groups of the array.
  */
-template <int n> std::array<std::vector<int>, n> LS(std::vector<int> &arr);
+template <std::size_t n>
+std::array<std::vector<ValueType>, n> LS(std::vector<ValueType> &arr);
 
 /**
  * @brief Template function to partition a given array into n groups.
@@ -21,7 +27,8 @@ template <int n> std::array<std::vector<int>, n> LS(std::vector<int> &arr);
  * @param arr The array to partition.
  * @return An array of vectors containing the partitioned groups of the array.
  */
-template <int n> std::array<std::vector<int>, n> LPT(std::vector<int> &arr);
+template <std::size_t n>
+std::array<std::vector<ValueType>, n> LPT(std::vector<ValueType> &arr);
 
 /**
  * @brief Template function to partition a given array into n groups using a
@@ -35,8 +42,9 @@ template <int n> std::array<std::vector<int>, n> LPT(std::vector<int> &arr);
  * @param k The number of iterations to run the algorithm (default is 7).
  * @return An array of vectors containing the partitioned groups of the array.
  */
-template <int n>
-std::array<std::vector<int>, n> MULTIFIT(std::vector<int> &arr, int k = 7);
+template <std::size_t n>
+std::array<std::vector<ValueType>, n> MULTIFIT(std::vector<ValueType> &arr,
+                                               std::size_t k = 7);
 
 /**
  * @brief Template function to partition a given array into groups using the
@@ -48,7 +56,8 @@ std::array<std::vector<int>, n> MULTIFIT(std::vector<int> &arr, int k = 7);
  * @param arr The array to partition.
  * @return An array of vectors containing the partitioned groups of the array.
  */
-std::vector<std::vector<int>> FFD(std::vector<int> &arr, int capacity);
+std::vector<std::vector<ValueType>> FFD(std::vector<ValueType> &arr,
+                                        ValueType capacity);
 
 /**
  * @brief Template function to partition a given array into n groups using a
@@ -60,7 +69,8 @@ std::vector<std::vector<int>> FFD(std::vector<int> &arr, int capacity);
  * @param arr The array to partition.
  * @return An array of vectors containing the partitioned groups of the array.
  */
-template <int n> std::array<std::vector<int>, n> CGA(std::vector<int> &arr);
+template <std::size_t n>
+std::array<std::vector<ValueType>, n> CGA(std::vector<ValueType> &arr);
 
 /**
  * @brief A backtracking algorithm to find the optimal partition of the array
@@ -78,13 +88,13 @@ template <int n> std::array<std::vector<int>, n> CGA(std::vector<int> &arr);
  * @param groupsCandidate The current candidate partition.
  * @param i The current index in the array.
  */
-template <int n>
-void CGABacktracking(const std::vector<int> &arr,
-                     std::array<std::vector<int>, n> &groups,
-                     std::array<int, n> &groupSums, int &makespan,
-                     int &lowerbound,
-                     std::array<std::vector<int>, n> &groupsCandidate, int i);
-
+template <std::size_t n>
+void CGABacktracking(const std::vector<ValueType> &arr,
+                     std::array<std::vector<ValueType>, n> &groups,
+                     std::array<ValueType, n> &groupSums, ValueType &makespan,
+                     ValueType &lowerbound,
+                     std::array<std::vector<ValueType>, n> &groupsCandidate,
+                     std::size_t i);
 
 /**
  * @brief Template function to partition a given array into n groups using a
@@ -96,8 +106,9 @@ void CGABacktracking(const std::vector<int> &arr,
  * @param arr The array to partition.
  * @return An array of vectors containing the partitioned groups of the array.
  */
-template <int n>
-std::array<std::vector<int>, n> geneticAlgorithm(std::vector<int> &arr);
+template <std::size_t n>
+std::array<std::vector<ValueType>, n>
+geneticAlgorithm(std::vector<ValueType> &arr);
 } // namespace partition
 
 #include "Partition.tpp"

@@ -9,7 +9,10 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 include_directories(${PROJECT_SOURCE_DIR}/include)
 
 # Adiciona o executável
-add_executable(n-partition
+add_executable(
+   n-partition
    include/ReadInstances.cpp
+   include/Partition.cpp
    src/main.cpp
 )
+
