@@ -304,16 +304,42 @@ geneticAlgorithm(std::vector<ValueType> &arr) {
 
     std::multiset<ValueType, std::greater<ValueType>> available(elements);
 
-    for (size_t i = 0; i < L; ++i) {
-      ValueType candidate = (i % 2 == 0 ? p1.first[i] : p2.first[i]);
-      auto it = available.find(candidate);
-      if (it != available.end()) {
-        child[i] = candidate;
-        available.erase(it);
+    const size_t K = 2;
+
+    for (size_t start = 0; start < L; start += K) {
+      // define o bloco
+      size_t end = std::min(start + K, L);
+
+      // calcular diferenças dos blocos
+      ValueType min1 = std::numeric_limits<ValueType>::max();
+      ValueType max1 = std::numeric_limits<ValueType>::min();
+      ValueType min2 = std::numeric_limits<ValueType>::max();
+      ValueType max2 = std::numeric_limits<ValueType>::min();
+
+      for (size_t i = start; i < end; ++i) {
+        min1 = std::min(min1, p1.first[i]);
+        max1 = std::max(max1, p1.first[i]);
+        min2 = std::min(min2, p2.first[i]);
+        max2 = std::max(max2, p2.first[i]);
+      }
+      ValueType diff1 = max1 - min1;
+      ValueType diff2 = max2 - min2;
+
+      // escolher bloco com menor diferença
+      const auto &chosen = (diff1 <= diff2 ? p1.first : p2.first);
+
+      // inserir deste bloco apenas valores disponíveis
+      for (size_t i = start; i < end; ++i) {
+        ValueType v = chosen[i];
+        auto it = available.find(v);
+        if (it != available.end()) {
+          child[i] = v;
+          available.erase(it);
+        }
       }
     }
 
-    // preencher os buracos com restantes (ordem arbitrária, mas completa)
+    // preencher os buracos com restantes
     for (auto e : available) {
       auto pos = std::find(child.begin(), child.end(), -1);
       if (pos != child.end())
@@ -327,11 +353,11 @@ geneticAlgorithm(std::vector<ValueType> &arr) {
   auto mutation = [&](std::vector<ValueType> genes) {
     std::uniform_int_distribution<size_t> idxDist(0, genes.size() - 1);
 
-    while (distPercent(gen) < MUTATION_PROBABILITY) {
-      size_t a = idxDist(gen);
-      size_t b = idxDist(gen);
-      std::swap(genes[a], genes[b]);
-    }
+    size_t a = idxDist(gen);
+    size_t b = idxDist(gen);
+    if (a > b)
+      std::swap(a, b);
+    std::reverse(genes.begin() + a, genes.begin() + b);
 
     return genes;
   };
