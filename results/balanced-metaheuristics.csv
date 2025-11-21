@@ -1,0 +1,2 @@
+Metaheuristic,NumRunsDetected,AvgDeviationFromBestKnown_pct,MaxExecutionTime_us,MinExecutionTime_us,MaxOptimalHitsInRun,MinOptimalHitsInRun,MaxDeviationInRun_pct,MinDeviationInRun_pct
+Genetic,5,0.4035614400649221,13911.0,113.0,1137,1120,11.538461538461538,0.0

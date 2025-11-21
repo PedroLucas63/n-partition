@@ -172,7 +172,7 @@ int max_m_for_n(int n) {
   case 3:
     return 25;
   case 4:
-    return 25;
+    return 20;
   case 5:
     return 20;
   case 8:

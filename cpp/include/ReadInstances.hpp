@@ -7,7 +7,7 @@
 
 namespace ReadInstances {
 
-const std::string INSTANCE_PATH = "balanced.txt";
+const std::string INSTANCE_PATH = "../instances/random.txt";
 
 /**
  * @brief Structure to store one instance's data.

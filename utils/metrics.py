@@ -1,142 +1,201 @@
-import pandas as pd
-import numpy as np
+#!/usr/bin/env python3
+import argparse
 import os
 import re
+import sys
 
-# Caminho do diretório atual do script
-project_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "temp"))
+import numpy as np
+import pandas as pd
 
-# Caminho completo para o CSV
-csv_path = os.path.join(project_dir, "balanced-results2.csv")
+def find_cols(df):
+    genetic_makespan_cols = [c for c in df.columns if re.match(r"Genetic.*_MaxGroupSum", c)]
+    genetic_time_cols = [c for c in df.columns if re.match(r"Genetic.*_Time\(us\)", c)]
+    genetic_makespan_cols.sort()
+    genetic_time_cols.sort()
+    return genetic_makespan_cols, genetic_time_cols
 
-df = pd.read_csv(csv_path)
+def safe_mean(arr):
+    return float(np.mean(arr)) if len(arr) > 0 else float("nan")
 
-# Algoritmos simples (1 coluna por algoritmo)
-algoritmos_simples = {
-    "LS": ("LS_MaxGroupSum", "LS_Time(us)"),
-    "LPT": ("LPT_MaxGroupSum", "LPT_Time(us)"),
-    "MultiFit": ("MULTIFIT_MaxGroupSum", "MULTIFIT_Time(us)"),
-    "CGA": ("CGA_MaxGroupSum", "CGA_Time(us)")
-}
+def main():
+    p = argparse.ArgumentParser(description="Gerar métricas e resumo de metaheurísticas a partir de um CSV de resultados.")
+    p.add_argument("--input", "-i", required=True, help="Arquivo CSV de entrada (ex.: balanced-results2.csv)")
+    p.add_argument("--outdir", "-o", required=True, help="Pasta de saída (será criada se não existir)")
+    p.add_argument("--basename", "-b", required=True, help="Nome base para os arquivos de saída (ex.: balanced)")
+    args = p.parse_args()
 
-# -------------------------
-# 🔍 Detectar colunas do genético automaticamente
-# -------------------------
-genetic_makespan_cols = [c for c in df.columns if re.match(r"Genetic.*_MaxGroupSum", c)]
-genetic_time_cols = [c for c in df.columns if re.match(r"Genetic.*_Time\(us\)", c)]
+    input_path = args.input
+    outdir = args.outdir
+    basename = args.basename
 
-if not genetic_makespan_cols:
-    raise RuntimeError("Nenhuma coluna do genético encontrada! Verifique o CSV.")
+    if not os.path.isfile(input_path):
+        print(f"Arquivo de entrada não encontrado: {input_path}", file=sys.stderr)
+        sys.exit(1)
 
-genetic_makespan_cols.sort()
-genetic_time_cols.sort()
+    os.makedirs(outdir, exist_ok=True)
 
-# -------------------------
-# 📊 Estatísticas gerais
-# -------------------------
-data = []
+    df = pd.read_csv(input_path)
 
-# Para cálculos detalhados do genético
-genetic_all_errors = []
-genetic_all_times = []
-genetic_all_solutions = []
+    # determina colunas
+    genetic_makespan_cols, genetic_time_cols = find_cols(df)
+    if not genetic_makespan_cols:
+        raise RuntimeError("Nenhuma coluna do genético encontrada! Verifique o CSV.")
 
-# Para armazenar instâncias em que o CGA errou
-cga_erros_indices = None
-
-# Processar algoritmos simples (LS, LPT, MultiFit, CGA)
-for alg, (makespan_col, time_col) in algoritmos_simples.items():
-    makespans = df[makespan_col].values
-    tempos = df[time_col].values
-    optimal = df["OptimalMakespan"].values
-
-    erro_pct = 100 * (makespans - optimal) / optimal
-    solucoes_otimas = np.sum(makespans == optimal)
-
-    linha = {
-        "Algoritmo": alg,
-        "Média Erro (%)": np.mean(erro_pct),
-        "Mediana Erro (%)": np.median(erro_pct),
-        "Desvio Padrão (%)": np.std(erro_pct),
-        "Erro Mínimo (%)": np.min(erro_pct),
-        "Erro Máximo (%)": np.max(erro_pct),
-        "Soluções Ótimas": solucoes_otimas,
-        "Tempo Médio (us)": np.mean(tempos),
-        "Tempo Máx (us)": np.max(tempos),
-        "Tempo Mín (us)": np.min(tempos)
+    # algoritmos simples
+    algoritmos_simples = {
+        "LS": ("LS_MaxGroupSum", "LS_Time(us)"),
+        "LPT": ("LPT_MaxGroupSum", "LPT_Time(us)"),
+        "MultiFit": ("MULTIFIT_MaxGroupSum", "MULTIFIT_Time(us)"),
+        "CGA": ("CGA_MaxGroupSum", "CGA_Time(us)")
     }
 
-    if alg == "CGA":
-        cga_erros_indices = np.where(makespans != optimal)[0] + 1
+    data = []
+    genetic_all_errors = []
+    genetic_all_times = []
+    genetic_all_solutions = []
 
-    data.append(linha)
+    cga_erros_indices = None
 
-# -------------------------
-# 📊 Estatísticas do genético (média das execuções)
-# -------------------------
+    optimal = df["OptimalMakespan"].values
 
-optimal = df["OptimalMakespan"].values
+    # Processar algoritmos simples
+    for alg, (makespan_col, time_col) in algoritmos_simples.items():
+        if makespan_col not in df.columns or time_col not in df.columns:
+            # pula se não existir
+            continue
+        makespans = df[makespan_col].values
+        tempos = df[time_col].values
 
-for mcol, tcol in zip(genetic_makespan_cols, genetic_time_cols):
-    makes = df[mcol].values
-    times = df[tcol].values
+        erro_pct = 100.0 * (makespans - optimal) / optimal
+        solucoes_otimas = int(np.sum(makespans == optimal))
 
-    errors = 100 * (makes - optimal) / optimal
-    sols = (makes == optimal)
+        linha = {
+            "Algoritmo": alg,
+            "Média Erro (%)": float(np.mean(erro_pct)),
+            "Mediana Erro (%)": float(np.median(erro_pct)),
+            "Desvio Padrão (%)": float(np.std(erro_pct)),
+            "Erro Mínimo (%)": float(np.min(erro_pct)),
+            "Erro Máximo (%)": float(np.max(erro_pct)),
+            "Soluções Ótimas (instâncias)": int(solucoes_otimas),
+            "Tempo Médio (us)": float(np.mean(tempos)),
+            "Tempo Máx (us)": float(np.max(tempos)),
+            "Tempo Mín (us)": float(np.min(tempos))
+        }
 
-    genetic_all_errors.append(errors)
-    genetic_all_times.append(times)
-    genetic_all_solutions.append(sols)
+        if alg == "CGA":
+            cga_erros_indices = np.where(makespans != optimal)[0] + 1
 
-# Converter listas para arrays
-genetic_all_errors = np.array(genetic_all_errors)
-genetic_all_times = np.array(genetic_all_times)
-genetic_all_solutions = np.array(genetic_all_solutions)
+        data.append(linha)
 
-# Média das execuções
-genetic_mean_error = np.mean(genetic_all_errors, axis=0)
-genetic_mean_time = np.mean(genetic_all_times, axis=0)
-genetic_mean_solutions = np.mean(genetic_all_solutions, axis=0)
+    # Processar genético (várias execuções)
+    # conferindo pares
+    if len(genetic_makespan_cols) != len(genetic_time_cols):
+        # tenta emparelhar pelo número encontrado; avisa mas continua com o menor conjunto
+        n = min(len(genetic_makespan_cols), len(genetic_time_cols))
+        genetic_makespan_cols = genetic_makespan_cols[:n]
+        genetic_time_cols = genetic_time_cols[:n]
 
-# Média de soluções ótimas por execução
-genetic_solutions_per_run = np.sum(genetic_all_solutions, axis=1) 
+    # coletar arrays: cada linha da lista corresponde a uma execução (coluna)
+    for mcol, tcol in zip(genetic_makespan_cols, genetic_time_cols):
+        makes = df[mcol].values
+        times = df[tcol].values
+        errors = 100.0 * (makes - optimal) / optimal
+        sols = (makes == optimal)
+        genetic_all_errors.append(errors)
+        genetic_all_times.append(times)
+        genetic_all_solutions.append(sols)
 
-data.append({
-    "Algoritmo": "Genetic (Média)",
-    "Média Erro (%)": np.mean(genetic_mean_error),
-    "Mediana Erro (%)": np.median(genetic_mean_error),
-    "Desvio Padrão (%)": np.std(genetic_mean_error),
-    "Erro Mínimo (%)": np.min(genetic_mean_error),
-    "Erro Máximo (%)": np.max(genetic_mean_error),
-    "Soluções Ótimas": np.mean(genetic_solutions_per_run),
-    "Tempo Médio (us)": np.mean(genetic_mean_time),
-    "Tempo Máx (us)": np.max(genetic_mean_time),
-    "Tempo Mín (us)": np.min(genetic_mean_time)
-})
+    genetic_all_errors = np.array(genetic_all_errors)      # shape: (runs, instances)
+    genetic_all_times = np.array(genetic_all_times)
+    genetic_all_solutions = np.array(genetic_all_solutions)
 
-# Criar DataFrame final e salvar
-tabela_metricas = pd.DataFrame(data)
-tabela_metricas.to_csv(os.path.join(project_dir, "balanced-metrics2.csv"), index=False)
+    genetic_mean_error = np.mean(genetic_all_errors, axis=0) if genetic_all_errors.size else np.array([])
+    genetic_mean_time = np.mean(genetic_all_times, axis=0) if genetic_all_times.size else np.array([])
+    genetic_mean_solutions = np.mean(genetic_all_solutions, axis=0) if genetic_all_solutions.size else np.array([])
 
-# ============================
-# 📌 1. Estatísticas gerais
-# ============================
-print("======================================")
-print(" ESTATÍSTICAS GERAIS DOS ALGORITMOS ")
-print("======================================\n")
-print(tabela_metricas)
+    genetic_solutions_per_run = np.sum(genetic_all_solutions, axis=1) if genetic_all_solutions.size else np.array([])
 
-# ============================
-# 📌 2. Resumo das execuções do genético
-# ============================
-print("\n======================================")
-print(" RESUMO DAS EXECUÇÕES DO GENÉTICO ")
-print("======================================\n")
+    # adicionar linha resumo para Genetic
+    data.append({
+        "Algoritmo": f"Genetic (Média)",
+        "Média Erro (%)": float(np.mean(genetic_mean_error)) if genetic_mean_error.size else float("nan"),
+        "Mediana Erro (%)": float(np.median(genetic_mean_error)) if genetic_mean_error.size else float("nan"),
+        "Desvio Padrão (%)": float(np.std(genetic_mean_error)) if genetic_mean_error.size else float("nan"),
+        "Erro Mínimo (%)": float(np.min(genetic_mean_error)) if genetic_mean_error.size else float("nan"),
+        "Erro Máximo (%)": float(np.max(genetic_mean_error)) if genetic_mean_error.size else float("nan"),
+        "Soluções Ótimas (instâncias)": float(np.mean(genetic_solutions_per_run)) if genetic_solutions_per_run.size else float("nan"),
+        "Tempo Médio (us)": float(np.mean(genetic_mean_time)) if genetic_mean_time.size else float("nan"),
+        "Tempo Máx (us)": float(np.max(genetic_mean_time)) if genetic_mean_time.size else float("nan"),
+        "Tempo Mín (us)": float(np.min(genetic_mean_time)) if genetic_mean_time.size else float("nan")
+    })
 
-print(f"Total de execuções detectadas: {len(genetic_makespan_cols)}\n")
+    # salvar métricas gerais
+    tabela_metricas = pd.DataFrame(data)
+    metrics_out = os.path.join(outdir, f"{basename}-metrics.csv")
+    tabela_metricas.to_csv(metrics_out, index=False)
 
-print(f"MELHOR nº de soluções ótimas: {np.max(np.sum(genetic_all_solutions, axis=1))}")
-print(f"PIOR nº de soluções ótimas:   {np.min(np.sum(genetic_all_solutions, axis=1))}\n")
+    # ============================
+    # Resumo específico das metaheurísticas
+    # ============================
+    meta_rows = []
 
-print(f"Maior tempo (us): {np.max(genetic_all_times):.4f}")
-print(f"Menor tempo (us): {np.min(genetic_all_times):.4f}")
+    # --- Genetic (agregado) ---
+    # ============================
+    # Resumo específico da metaheurística (apenas Genetic)
+    # ============================
+    if genetic_all_errors.size:
+        # Reconstruir makespans originais e tempos
+        makes_matrix = np.vstack([df[c].values for c in genetic_makespan_cols])  # shape: (runs, instances)
+        times_matrix = np.vstack([df[c].values for c in genetic_time_cols]) if genetic_time_cols else np.zeros_like(makes_matrix)
+        
+        # Afastamento médio das soluções encontradas para as melhores soluções conhecidas
+        deviation_per_run = 100.0 * (makes_matrix - optimal) / optimal  # shape: (runs, instances)
+        mean_deviation_per_run = np.mean(np.abs(deviation_per_run), axis=1)  # média por execução
+        
+        # Número de acertos (solução ótima) por execução
+        num_optimal_per_run = np.sum(makes_matrix == optimal, axis=1)
+        
+        # Tempo máximo e mínimo entre todas execuções/instâncias
+        max_time = float(np.max(times_matrix))
+        min_time = float(np.min(times_matrix))
+        
+        # Maior e menor número de acertos em uma execução
+        max_hits = int(np.max(num_optimal_per_run))
+        min_hits = int(np.min(num_optimal_per_run))
+        
+        # Maior e menor distanciamento do ótimo em uma execução
+        max_deviation = float(np.max(np.max(deviation_per_run, axis=1)))
+        min_deviation = float(np.min(np.min(deviation_per_run, axis=1)))
+        
+        meta_summary = {
+            "Metaheuristic": "Genetic",
+            "NumRunsDetected": len(genetic_makespan_cols),
+            "AvgDeviationFromBestKnown_pct": float(np.mean(mean_deviation_per_run)),
+            "MaxExecutionTime_us": max_time,
+            "MinExecutionTime_us": min_time,
+            "MaxOptimalHitsInRun": max_hits,
+            "MinOptimalHitsInRun": min_hits,
+            "MaxDeviationInRun_pct": max_deviation,
+            "MinDeviationInRun_pct": min_deviation
+        }
+        
+        meta_df = pd.DataFrame([meta_summary])
+        meta_out = os.path.join(outdir, f"{basename}-metaheuristics.csv")
+        meta_df.to_csv(meta_out, index=False)
+
+    # prints finais rápidos
+    print("======================================")
+    print(" ESTATÍSTICAS GERAIS DOS ALGORITMOS ")
+    print("======================================\n")
+    print(tabela_metricas.to_string(index=False))
+    print("\n======================================")
+    print(" RESUMO DAS EXECUÇÕES DO GENÉTICO ")
+    print("======================================\n")
+    print(f"Total de execuções detectadas: {len(genetic_makespan_cols)}")
+    if genetic_all_times.size:
+        print(f"Maior tempo (us): {np.max(genetic_all_times):.4f}")
+        print(f"Menor tempo (us): {np.min(genetic_all_times):.4f}")
+    print(f"\nArquivos gravados:\n - {metrics_out}\n - {meta_out}")
+
+if __name__ == "__main__":
+    main()

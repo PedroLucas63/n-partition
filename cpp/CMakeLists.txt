@@ -16,3 +16,9 @@ add_executable(
    src/main.cpp
 )
 
+# Adiciona o executável de geração de instâncias
+add_executable(
+   generate-instances
+   include/Partition.cpp
+   src/generate-instances.cpp
+)
