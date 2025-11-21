@@ -22,3 +22,10 @@ add_executable(
    include/Partition.cpp
    src/generate-instances.cpp
 )
+
+# Adiciona o executável do ambiente simulado
+add_executable(
+   simulated
+   include/Partition.cpp
+   src/simulated.cpp
+)
