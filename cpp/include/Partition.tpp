@@ -400,4 +400,227 @@ geneticAlgorithm(std::vector<ValueType> &arr) {
   std::vector<ValueType> bestCopy = bestGenes;
   return LS<n>(bestCopy);
 }
+
+template <std::size_t n>
+std::array<std::vector<ValueType>, n>
+geneticAlgorithm2(std::vector<ValueType> &arr) {
+  // --- Constantes ---
+  const int QUEUE_MAX_SIZE = 50;
+  const int INITIAL_POPULATION_SIZE = 20;
+  const int CROSSOVER_FACTOR = 2;
+  const int MUTATION_PROBABILITY = 40; // percentage
+  const int MAX_GENERATIONS_WITHOUT_IMPROVEMENT = 5;
+  const double MUTATION_STRENGTH = 0.1;
+
+  // RNG único e distributions
+  std::random_device rd;
+  std::mt19937 gen(rd());
+  std::uniform_real_distribution<double> dist01(0.0, 1.0);
+  std::uniform_int_distribution<int> distPercent(0, 99);
+  std::uniform_real_distribution<double> distMutation(-MUTATION_STRENGTH,
+                                                      MUTATION_STRENGTH);
+
+  // -- Calcula o makespan ótimo --
+  ValueType sum = std::accumulate(arr.begin(), arr.end(), 0);
+  const ValueType makespan_opt = (sum + n - 1) / n;
+
+  using Genes = std::pair<std::size_t, double>;
+  auto cmpGenes = [](const Genes &a, const Genes &b) {
+    return a.second > b.second;
+  };
+  auto generateRandomGenes = [&]() {
+    std::vector<Genes> genes;
+    for (std::size_t i = 0; i < arr.size(); i++) {
+      double random = dist01(gen);
+      genes.push_back({i, random});
+    }
+    return genes;
+  };
+
+  auto getGenesValues = [&](std::vector<Genes> genes) {
+    std::sort(genes.begin(), genes.end(), cmpGenes);
+    std::vector<ValueType> values;
+    for (Genes gene : genes) {
+      values.push_back(arr[gene.first]);
+    }
+    return values;
+  };
+
+  using Individual =
+      std::pair<std::vector<Genes>, ValueType>; // (genes, fitness)
+
+  // Menor fitness = melhor indivíduo
+  auto cmp = [](const Individual &a, const Individual &b) {
+    return a.second < b.second;
+  };
+
+  std::multiset<Individual, decltype(cmp)> population(cmp);
+
+  // --- Função auxiliar: makespan (usa o genes passado) ---
+  auto calculateMakespan = [&](const std::vector<Genes> &genes) {
+    std::vector<ValueType> tmp = getGenesValues(genes);
+    auto solution = LS<n>(tmp);
+
+    std::array<ValueType, n> sums;
+    for (std::size_t i = 0; i < n; ++i)
+      sums[i] =
+          std::accumulate(solution[i].begin(), solution[i].end(), ValueType{0});
+
+    return *std::max_element(sums.begin(), sums.end());
+  };
+
+  // --- Adicionar indivíduo (com poda para QUEUE_MAX_SIZE) ---
+  auto addIndividual = [&](const std::vector<Genes> &genes) {
+    ValueType fitness = calculateMakespan(genes);
+    population.insert({genes, fitness});
+
+    if ((int)population.size() > QUEUE_MAX_SIZE) {
+      auto it = std::prev(population.end());
+      population.erase(it);
+    }
+  };
+
+  // --- Seleção por roleta --- auto selectParents = [&]() ->
+  auto selectParents = [&]() -> std::pair<Individual, Individual> {
+    std::vector<const Individual *> index;
+    index.reserve(population.size());
+
+    for (auto &ind : population)
+      index.push_back(&ind);
+
+    std::vector<double> weights;
+    weights.reserve(index.size());
+    for (auto ptr : index)
+      weights.push_back(1.0 / (ptr->second + 1e-9));
+
+    double totalWeight = std::accumulate(weights.begin(), weights.end(), 0.0);
+    for (auto &w : weights)
+      w /= totalWeight;
+
+    auto roulette = [&](const Individual *exclude) {
+      while (true) {
+        double r = dist01(gen);
+        double acc = 0.0;
+
+        for (size_t i = 0; i < weights.size(); i++) {
+          acc += weights[i];
+
+          if (r <= acc) {
+            if (exclude == nullptr || index[i] != exclude)
+              return *index[i];
+            break;
+          }
+        }
+      }
+    };
+
+    Individual p1 = roulette(nullptr);
+    Individual p2 = roulette(&p1);
+
+    return {p1, p2};
+  };
+
+  // --- Primeiro indivíduo (Ordenado) ---
+  auto generateFirstIndividual = [](std::vector<ValueType> arr) {
+    std::vector<std::pair<std::size_t, ValueType>> tmp;
+    for (std::size_t i = 0; i < arr.size(); i++) {
+      tmp.push_back({i, arr[i]});
+    }
+
+    std::sort(tmp.begin(), tmp.end(),
+              [](std::pair<std::size_t, ValueType> a,
+                 std::pair<std::size_t, ValueType> b) {
+                return a.second < b.second;
+              });
+    double increment = 1.0 / arr.size();
+
+    std::vector<Genes> genes;
+    for (std::size_t i = 0; i < arr.size(); i++) {
+      genes.push_back({tmp[i].first, i * increment});
+    }
+    return genes;
+  };
+
+  // --- População inicial ---
+  auto work = generateFirstIndividual(arr);
+  for (int i = 0; i < INITIAL_POPULATION_SIZE; ++i) {
+    addIndividual(work);
+    work = generateRandomGenes();
+  }
+
+  // garante que population não está vazia
+  if (population.empty()) {
+    std::vector<ValueType> tmp = arr;
+    return LS<n>(tmp);
+  }
+
+  // --- Crossover (uniform-like, preserva multiconjunto) ---
+  auto crossover = [&](const Individual &p1, const Individual &p2) {
+    size_t L = p1.first.size();
+    std::vector<Genes> child(L, {-1, 0.0});
+
+    for (size_t i = 0; i < L; i++) {
+      if (i % 2 == 0) {
+        child[i] = p1.first[i];
+      } else {
+        child[i] = p2.first[i];
+      }
+    }
+
+    return child;
+  };
+
+  // --- Mutação ---
+  auto mutation = [&](std::vector<Genes> genes) {
+    std::uniform_int_distribution<size_t> idxDist(0, genes.size() - 1);
+
+    while (distPercent(gen) < MUTATION_PROBABILITY) {
+      size_t idx = idxDist(gen);
+      genes[idx].second += distMutation(gen);
+
+      if (genes[idx].second < 0.0) {
+        genes[idx].second = 0.0;
+      } else if (genes[idx].second > 1.0) {
+        genes[idx].second = 1.0;
+      }
+    }
+
+    return genes;
+  };
+
+  // --- Evolução ---
+  int generationsWithoutImprovement = 0;
+  ValueType bestFitness = std::numeric_limits<ValueType>::max();
+
+  // inicializa bestFitness a partir do melhor atual
+  bestFitness = population.begin()->second;
+
+  while (generationsWithoutImprovement < MAX_GENERATIONS_WITHOUT_IMPROVEMENT) {
+    int offspringCount =
+        std::max<int>(1, (int)population.size() / CROSSOVER_FACTOR);
+
+    for (int i = 0; i < offspringCount; ++i) {
+      auto parents = selectParents();
+      auto child = crossover(parents.first, parents.second);
+      child = mutation(child);
+      addIndividual(child);
+    }
+
+    ValueType currentBest = population.begin()->second;
+    if (currentBest < bestFitness) {
+      bestFitness = currentBest;
+      generationsWithoutImprovement = 0;
+    } else {
+      ++generationsWithoutImprovement;
+    }
+
+    if (bestFitness == makespan_opt) {
+      break;
+    }
+  }
+
+  // --- Retorna solução LS do melhor indivíduo ---
+  std::vector<ValueType> bestCopy = getGenesValues(population.begin()->first);
+  return LS<n>(bestCopy);
+}
 } // namespace partition
