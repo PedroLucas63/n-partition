@@ -65,15 +65,15 @@ std::array<std::vector<ValueType>, n> MULTIFIT(std::vector<ValueType> &arr,
 
   std::sort(arr.begin(), arr.end(), std::greater<ValueType>());
 
-  ValueType sum = std::accumulate(arr.begin(), arr.end(), 0);
+  ValueType sum = std::accumulate(arr.begin(), arr.end(), ValueType{0});
   ValueType max = arr.front();
 
   ValueType lowerBound = std::max<ValueType>(max, sum / n);
   ValueType upperBound = std::max<ValueType>(max, 2 * sum / n);
 
-  std::vector<std::vector<ValueType>> bestGroups;
+  auto bestGroups = FFD(arr, upperBound);
 
-  for (std::size_t i = 0; i < k; i++) {
+  for (std::size_t i = 0; i < k && lowerBound < upperBound; i++) {
     ValueType capacity = (lowerBound + upperBound) / 2;
     auto groups = FFD(arr, capacity);
 
@@ -102,34 +102,35 @@ std::array<std::vector<ValueType>, n> CGA(std::vector<ValueType> &arr) {
   }
 
   // Get one solution
-  auto groups = LPT<n>(arr);
+  auto groupsCandidate = LPT<n>(arr);
 
   // Get makespan
   std::array<ValueType, n> sums;
-  std::transform(groups.begin(), groups.end(), sums.begin(),
+  std::transform(groupsCandidate.begin(), groupsCandidate.end(), sums.begin(),
                  [](const std::vector<ValueType> &group) {
-                   return std::accumulate(group.begin(), group.end(), 0);
+                   return std::accumulate(group.begin(), group.end(),
+                                          ValueType{0});
                  });
   ValueType makespan = *std::max_element(sums.begin(), sums.end());
 
   // Get makespan lowerbound
-  ValueType total = std::accumulate(arr.begin(), arr.end(), 0);
-  ValueType lowerbound = total % n == 0 ? total / n : total / n + 1;
+  ValueType total = std::accumulate(arr.begin(), arr.end(), ValueType{0});
+  ValueType lowerbound = (total + n - 1) / n;
 
   // Get best solution
   if (lowerbound < makespan) {
     std::array<ValueType, n> groupSums = {};
     std::array<std::vector<ValueType>, n> actualGroups = {};
     CGABacktracking<n>(arr, actualGroups, groupSums, makespan, lowerbound,
-                       groups, 0);
+                       groupsCandidate, 0);
   }
 
-  return groups;
+  return groupsCandidate;
 }
 
 template <std::size_t n>
 void CGABacktracking(const std::vector<ValueType> &arr,
-                     std::array<std::vector<ValueType>, n> &groups,
+                     std::array<std::vector<ValueType>, n> &actualGroups,
                      std::array<ValueType, n> &groupSums, ValueType &makespan,
                      ValueType &lowerbound,
                      std::array<std::vector<ValueType>, n> &groupsCandidate,
@@ -142,7 +143,7 @@ void CGABacktracking(const std::vector<ValueType> &arr,
     // Update
     if (currentMax < makespan) {
       makespan = currentMax;
-      groupsCandidate = groups;
+      groupsCandidate = actualGroups;
     }
     return;
   }
@@ -172,18 +173,18 @@ void CGABacktracking(const std::vector<ValueType> &arr,
     // Uperbound prune
     if (currentMax < makespan) {
       // Recursion
-      groups[j].push_back(arr[i]);
-      CGABacktracking<n>(arr, groups, groupSums, makespan, lowerbound,
+      actualGroups[j].push_back(arr[i]);
+      CGABacktracking<n>(arr, actualGroups, groupSums, makespan, lowerbound,
                          groupsCandidate, i + 1);
-      groups[j].pop_back(); // Backtrack
-
-      // Lowerbound prune
-      if (makespan == lowerbound) {
-        return;
-      }
+      actualGroups[j].pop_back(); // Backtrack
     }
 
     groupSums[j] -= arr[i];
+
+    // Lowerbound prune
+    if (makespan == lowerbound) {
+      return;
+    }
   }
 }
 
@@ -199,7 +200,7 @@ geneticAlgorithm(std::vector<ValueType> &arr) {
 
   // -- Calcula o makespan ótimo --
   ValueType sum = std::accumulate(arr.begin(), arr.end(), 0);
-  const ValueType makespan_opt = std::ceil(double(sum) / n);
+  const ValueType makespan_opt = (sum + n - 1) / n;
 
   using Individual =
       std::pair<std::vector<ValueType>, ValueType>; // (genes, fitness)
@@ -224,7 +225,8 @@ geneticAlgorithm(std::vector<ValueType> &arr) {
 
     std::array<ValueType, n> sums;
     for (std::size_t i = 0; i < n; ++i)
-      sums[i] = std::accumulate(solution[i].begin(), solution[i].end(), 0);
+      sums[i] =
+          std::accumulate(solution[i].begin(), solution[i].end(), ValueType{0});
 
     return *std::max_element(sums.begin(), sums.end());
   };
@@ -397,5 +399,221 @@ geneticAlgorithm(std::vector<ValueType> &arr) {
   const std::vector<ValueType> &bestGenes = population.begin()->first;
   std::vector<ValueType> bestCopy = bestGenes;
   return LS<n>(bestCopy);
+}
+
+template <std::size_t n>
+std::array<std::vector<ValueType>, n>
+geneticAlgorithm2(std::vector<ValueType> &arr) {
+  // --- Constantes ---
+  const int QUEUE_MAX_SIZE = 50;
+  const int INITIAL_POPULATION_SIZE = 20;
+  const int CROSSOVER_FACTOR = 2;
+  const int MAX_GENERATIONS_WITHOUT_IMPROVEMENT = 5;
+  const int BEST_PARENT_SELECTION_PROBABILITY = 70;
+  const int ELITISM_PROBABILITY = 50;  // % of population
+  const int MUTATION_PROBABILITY = 10; // % of population
+
+  // -- Calcula o makespan ótimo --
+  ValueType sum = std::accumulate(arr.begin(), arr.end(), 0);
+  const ValueType makespan_opt = (sum + n - 1) / n;
+
+  using Genes = std::pair<std::size_t, double>;
+  auto genes_cmp = [](const Genes &a, const Genes &b) {
+    return a.second > b.second;
+  };
+
+  auto getGenesValues = [&](std::vector<Genes> genes) {
+    std::sort(genes.begin(), genes.end(), genes_cmp);
+
+    std::vector<ValueType> values;
+    for (const auto &g : genes) {
+      values.push_back(arr[g.first]);
+    }
+    return values;
+  };
+
+  using Individual =
+      std::pair<std::vector<Genes>, ValueType>; // (genes, fitness)
+
+  struct CompareIndividuals {
+    bool operator()(const Individual &a, const Individual &b) const {
+      return a.second < b.second;
+    }
+  };
+
+  using Population = std::multiset<Individual, CompareIndividuals>;
+  Population population;
+
+  // RNG único e distributions
+  std::random_device rd;
+  std::mt19937 gen(rd());
+  std::uniform_real_distribution<double> dist01(0.0, 1.0);
+  std::uniform_int_distribution<int> distPercent(0, 99);
+
+  // --- Função auxiliar: makespan (usa o genes passado) ---
+  auto calculateMakespan = [&](const std::vector<Genes> &genes) {
+    std::vector<ValueType> tmp = getGenesValues(genes);
+    auto solution = LS<n>(tmp);
+
+    std::array<ValueType, n> sums;
+    for (std::size_t i = 0; i < n; ++i)
+      sums[i] =
+          std::accumulate(solution[i].begin(), solution[i].end(), ValueType{0});
+
+    return *std::max_element(sums.begin(), sums.end());
+  };
+
+  // --- Adicionar indivíduo (com poda para QUEUE_MAX_SIZE) ---
+  auto addIndividual = [&](const std::vector<Genes> &genes,
+                           Population &population) {
+    ValueType fitness = calculateMakespan(genes);
+    population.insert({genes, fitness});
+
+    if ((int)population.size() > QUEUE_MAX_SIZE) {
+      auto it = std::prev(population.end());
+      population.erase(it);
+    }
+  };
+
+  // --- Seleção por roleta --- auto selectParents = [&]() ->
+  auto selectParents = [&]() -> std::pair<Individual, Individual> {
+    std::vector<const Individual *> index;
+    index.reserve(population.size());
+
+    for (auto &ind : population)
+      index.push_back(&ind);
+
+    std::vector<double> weights;
+    weights.reserve(index.size());
+    for (auto ptr : index)
+      weights.push_back(1.0 / (ptr->second + 1e-9));
+
+    double totalWeight = std::accumulate(weights.begin(), weights.end(), 0.0);
+    for (auto &w : weights)
+      w /= totalWeight;
+
+    auto roulette = [&](const Individual *exclude) {
+      while (true) {
+        double r = dist01(gen);
+        double acc = 0.0;
+
+        for (size_t i = 0; i < weights.size(); i++) {
+          acc += weights[i];
+
+          if (r <= acc) {
+            if (exclude == nullptr || index[i] != exclude)
+              return *index[i];
+            break;
+          }
+        }
+      }
+    };
+
+    Individual p1 = roulette(nullptr);
+    Individual p2 = roulette(&p1);
+
+    return {p1, p2};
+  };
+
+  // --- Gerador de genes ---
+  auto generateRandomGenes = [&]() -> std::vector<Genes> {
+    std::vector<Genes> genes;
+    for (std::size_t i = 0; i < arr.size(); ++i) {
+      double w = dist01(gen);
+      Genes g{i, w};
+      genes.push_back(g);
+    }
+    return genes;
+  };
+
+  // --- População inicial ---
+  for (int i = 0; i < INITIAL_POPULATION_SIZE; ++i) {
+    addIndividual(generateRandomGenes(), population);
+  }
+
+  // garante que population não está vazia
+  if (population.empty()) {
+    std::vector<ValueType> tmp = arr;
+    return LS<n>(tmp);
+  }
+
+  // --- Crossover (uniform-like, preserva multiconjunto) ---
+  auto crossover = [&](const Individual &p1, const Individual &p2) {
+    size_t L = p1.first.size();
+    std::vector<Genes> child(L, {-1, 0.0});
+
+    const Individual *bestParent, *worstParent; // ponteiros para os pais
+    if (p1.second < p2.second) {
+      bestParent = &p1;
+      worstParent = &p2;
+    } else {
+      bestParent = &p2;
+      worstParent = &p1;
+    }
+
+    for (std::size_t i = 0; i < L; i++) {
+      if (distPercent(gen) < BEST_PARENT_SELECTION_PROBABILITY) {
+        child[i] = bestParent->first[i];
+      } else {
+        child[i] = worstParent->first[i];
+      }
+    }
+
+    return child;
+  };
+
+  // --- Evolução ---
+  int generationsWithoutImprovement = 0;
+  ValueType bestFitness = std::numeric_limits<int>::max();
+
+  // inicializa bestFitness a partir do melhor atual
+  bestFitness = population.begin()->second;
+
+  while (generationsWithoutImprovement < MAX_GENERATIONS_WITHOUT_IMPROVEMENT) {
+    // Create next population
+    Population next_population;
+
+    // Elitism
+    const int ELITISM_FACTOR = population.size() * ELITISM_PROBABILITY / 100;
+    for (int i = 0; i < ELITISM_FACTOR; i++) {
+      next_population.insert(*population.begin());
+      population.erase(population.begin());
+    }
+
+    // Mutation
+    const int MUTATION_FACTOR = population.size() * MUTATION_PROBABILITY / 100;
+    for (int i = 0; i < MUTATION_FACTOR; i++) {
+      addIndividual(generateRandomGenes(), next_population);
+    }
+
+    // Crossover
+    int offspringCount =
+        std::max<int>(1, (int)population.size() / CROSSOVER_FACTOR);
+
+    for (int i = 0; i < offspringCount; ++i) {
+      auto parents = selectParents();
+      auto child = crossover(parents.first, parents.second);
+      addIndividual(child, next_population);
+    }
+
+    // Selection
+    population = next_population;
+
+    ValueType currentBest = population.begin()->second;
+    if (currentBest < bestFitness) {
+      bestFitness = currentBest;
+      generationsWithoutImprovement = 0;
+    } else {
+      ++generationsWithoutImprovement;
+    }
+
+    if (bestFitness == makespan_opt) {
+      break;
+    }
+  }
+
+  // --- Retorna solução LS do melhor indivíduo ---
+  auto bestGenes = getGenesValues(population.begin()->first);
+  return LS<n>(bestGenes);
 }
 } // namespace partition

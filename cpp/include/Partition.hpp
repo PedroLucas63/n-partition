@@ -90,7 +90,7 @@ std::array<std::vector<ValueType>, n> CGA(std::vector<ValueType> &arr);
  */
 template <std::size_t n>
 void CGABacktracking(const std::vector<ValueType> &arr,
-                     std::array<std::vector<ValueType>, n> &groups,
+                     std::array<std::vector<ValueType>, n> &actualGroups,
                      std::array<ValueType, n> &groupSums, ValueType &makespan,
                      ValueType &lowerbound,
                      std::array<std::vector<ValueType>, n> &groupsCandidate,
@@ -109,6 +109,10 @@ void CGABacktracking(const std::vector<ValueType> &arr,
 template <std::size_t n>
 std::array<std::vector<ValueType>, n>
 geneticAlgorithm(std::vector<ValueType> &arr);
+
+template <std::size_t n>
+std::array<std::vector<ValueType>, n>
+geneticAlgorithm2(std::vector<ValueType> &arr);
 } // namespace partition
 
 #include "Partition.tpp"

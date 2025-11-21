@@ -34,3 +34,5 @@ bin/
 
 .mvvn
 __pycache__
+
+temp

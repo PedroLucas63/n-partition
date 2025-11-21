@@ -170,13 +170,13 @@ int max_m_for_n(int n) {
   case 2:
     return 35;
   case 3:
-    return 30;
+    return 25;
   case 4:
     return 25;
   case 5:
     return 20;
   case 8:
-    return 16;
+    return 20;
   default:
     return 0;
   }
