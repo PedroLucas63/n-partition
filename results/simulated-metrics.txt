@@ -1,13 +1,14 @@
+
 ==========================
      GLOBAL SUMMARY
 ==========================
 
 Erro médio global (Mean Distance):
 
-  Genetic: 55.0476
-  LPT: 95.2143
-  MULTIFIT: 546.3254
-  LS: 3812.3806
+  Genetic: 66693.0722
+  LPT: 66736.3500
+  MULTIFIT: 67183.9611
+  LS: 70476.2944
 
 Ranking global (1 = melhor):
 
@@ -19,7 +20,7 @@ Ranking global (1 = melhor):
 Pontuação de vitórias globais:
 
   Genetic: 18 ponto(s)
-  LPT: 5 ponto(s)
+  LPT: 1 ponto(s)
   LS: 0 ponto(s)
   MULTIFIT: 0 ponto(s)
 
