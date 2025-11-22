@@ -47,15 +47,15 @@ void run_simulation(ofstream &csv, size_t num_tasks, int winner_makespan[4]) {
 
   double ideal = std::accumulate(tasks.begin(), tasks.end(), 0.0) / num_machines;
 
-  array<double, 4> makespans{};
-  array<double, 4> distances{};
-  array<double, 4> times_mean{};
-  array<double, 4> times_min{};
-  array<double, 4> times_max{};
+  array<double, 5> makespans{};
+  array<double, 5> distances{};
+  array<double, 5> times_mean{};
+  array<double, 5> times_min{};
+  array<double, 5> times_max{};
 
-  vector<string> algo_names = {"LS", "LPT", "MULTIFIT", "Genetic", "AnnealingLaha"};
+  vector<string> algo_names = {"LS", "LPT", "MULTIFIT", "Genetic", "SA"};
 
-  for (int algo_idx = 0; algo_idx < 4; ++algo_idx) {
+  for (int algo_idx = 0; algo_idx < 5; ++algo_idx) {
     const int runs = 5;
     vector<double> run_times;
     array_type allocation;
@@ -100,7 +100,7 @@ void run_simulation(ofstream &csv, size_t num_tasks, int winner_makespan[4]) {
       makespans.begin(), min_element(makespans.begin(), makespans.end()));
   winner_makespan[min_makespan_idx]++;
 
-  for (int i = 0; i < 4; ++i) {
+  for (int i = 0; i < 5; ++i) {
     csv << num_machines << "," << num_tasks << "," << algo_names[i] << ","
         << times_mean[i] << "," << times_min[i] << "," << times_max[i] << ","
         << makespans[i] << "," << distances[i] << "\n";
@@ -112,7 +112,7 @@ int main() {
   csv << "NumMachines,NumTasks,Algorithm,TimeMean,TimeMin,TimeMax,Makespan,"
          "MeanDistanceToIdeal\n";
 
-  int winner_makespan[4] = {0, 0, 0, 0};
+  int winner_makespan[5] = {0, 0, 0, 0, 0};
 
   for (size_t num_tasks = 500; num_tasks <= 1000; num_tasks += 100) {
     run_simulation<30>(csv, num_tasks, winner_makespan);
@@ -124,8 +124,8 @@ int main() {
 
   cout << "Simulação concluída. Resultados salvos em results.csv\n";
   cout << "Vitórias por algoritmo (menor makespan):\n";
-  vector<string> algo_names = {"LS", "LPT", "MULTIFIT", "Genetic"};
-  for (int i = 0; i < 4; ++i)
+  vector<string> algo_names = {"LS", "LPT", "MULTIFIT", "Genetic", "SA"};
+  for (int i = 0; i < 5; ++i)
     cout << algo_names[i] << ": " << winner_makespan[i] << "\n";
 
   return 0;

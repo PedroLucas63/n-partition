@@ -403,21 +403,24 @@ geneticAlgorithm(std::vector<ValueType> &arr) {
 }
 
 
-
 template <std::size_t n>
 std::array<std::vector<ValueType>, n>
 SimulatedAnnealing(std::vector<ValueType> &arr) {
 
-  const double initialTemp = 10000.0;
-  const double coolingRate = 0.98;
+  // --- 1. Configuração ---
+  // Ajuste: Temperatura baseada na média dos dados para ser adaptável
+  double avgVal = std::accumulate(arr.begin(), arr.end(), 0.0) / arr.size();
+  
+  double temperature = avgVal * 0.5; // Começa aceitando pioras de ~50% de um job médio
+  const double coolingRate = 0.95;   // Resfriamento mais lento (95%)
+  const int neighborsPerTemp = 10;  // Tenta 100 vizinhos antes de esfriar
 
-  // --- 1. Configuração e Aleatoriedade ---
   std::random_device rd;
   std::mt19937 gen(rd());
   std::uniform_real_distribution<> dist01(0.0, 1.0);
   std::uniform_int_distribution<> distMachine(0, n - 1);
 
-  // Função auxiliar de Makespan 
+  // Lambda de Makespan (Otimizado)
   auto getMakespan = [](const std::array<std::vector<ValueType>, n>& groups) {
     ValueType maxSum = 0;
     for (const auto& group : groups) {
@@ -427,99 +430,97 @@ SimulatedAnnealing(std::vector<ValueType> &arr) {
     return maxSum;
   };
 
-  // --- 2. Lógica de Vizinhança (Baseada em Laha) ---
-  // Objetivo: Tirar carga da máquina mais cheia 
-  auto generateNeighbor = [&](std::array<std::vector<ValueType>, n> groups) {
-    // A. Achar índice da máquina com maior soma (Gargalo)
-    std::size_t maxMachineIdx = 0;
-    ValueType currentMaxSum = -1;
-    
-    // Calcula somas para achar o gargalo
-    for (std::size_t i = 0; i < n; ++i) {
-      ValueType s = std::accumulate(groups[i].begin(), groups[i].end(), ValueType{0});
-      if (s > currentMaxSum) {
-        currentMaxSum = s;
-        maxMachineIdx = i;
-      }
-    }
-
-    // Se a máquina crítica estiver vazia (improvável com LPT), retorna sem mudar
-    if (groups[maxMachineIdx].empty()) return groups;
-
-    // B. Pegar um item aleatório dela
-    std::uniform_int_distribution<> distJob(0, groups[maxMachineIdx].size() - 1);
-    std::size_t jobIdx = distJob(gen);
-    ValueType jobValue = groups[maxMachineIdx][jobIdx];
-
-    // C. Mover para outra máquina aleatória (diferente da atual)
-    std::size_t targetMachineIdx = distMachine(gen);
-    while (targetMachineIdx == maxMachineIdx && n > 1) {
-      targetMachineIdx = distMachine(gen);
-    }
-
-    // Realiza a troca (Remove da origem, adiciona no destino)
-    groups[maxMachineIdx].erase(groups[maxMachineIdx].begin() + jobIdx);
-    groups[targetMachineIdx].push_back(jobValue);
-
-    return groups; 
-  };
-
   // --- Solução Inicial ---
-  auto currentSolution = MULTIFIT<n>(arr);
+  auto currentSolution = LPT<n>(arr); 
   auto bestSolution = currentSolution;
-  auto currentMakespan = getMakespan(currentSolution);
-  auto bestMakespan = currentMakespan;
+  
+  ValueType currentMakespan = getMakespan(currentSolution);
+  ValueType bestMakespan = currentMakespan;
 
-  double temperature = initialTemp;
-
-  // --- 3. Loop Principal (Annealing) ---
+  // --- 2. Loop Principal ---
   int iterationsWithoutImprovement = 0;
+  int maxTotalIterations = 5000; 
+  int iter = 0;
 
-  while (temperature > 0.1 && iterationsWithoutImprovement < 1000) { 
-      
-    // Tenta gerar um vizinho
-    auto neighborSolution = generateNeighbor(currentSolution);
-    auto neighborMakespan = getMakespan(neighborSolution);
+  while (temperature > 0.1 && iter < maxTotalIterations) {
 
-    // Calcula Delta (Variação de custo)
-    long long delta = neighborMakespan - currentMakespan;
+    for (int i = 0; i < neighborsPerTemp; ++i) {
+        
+        // A. Identificar Máquina Crítica (Gargalo)
+        std::size_t maxMachineIdx = 0;
+        ValueType currentMaxSum = 0;
+        
+        // Recalcula somas locais para garantir precisão
+        std::array<ValueType, n> machineSums;
+        for(size_t m=0; m<n; ++m) {
+            machineSums[m] = std::accumulate(currentSolution[m].begin(), currentSolution[m].end(), ValueType{0});
+            if(machineSums[m] > currentMaxSum) {
+                currentMaxSum = machineSums[m];
+                maxMachineIdx = m;
+            }
+        }
 
-    bool accept = false;
+        if (currentSolution[maxMachineIdx].empty()) continue;
 
-    if (delta < 0) {
-      // Melhora: Aceita sempre
-      accept = true;
+        // Copia solução para gerar vizinho
+        auto neighborSolution = currentSolution;
+
+        // B. Selecionar Job da Máquina Crítica
+        std::uniform_int_distribution<> distJobSource(0, neighborSolution[maxMachineIdx].size() - 1);
+        std::size_t jobIdxSource = distJobSource(gen);
+        
+        // C. Selecionar Máquina Destino Aleatória
+        std::size_t targetMachineIdx = distMachine(gen);
+        while (targetMachineIdx == maxMachineIdx && n > 1) {
+            targetMachineIdx = distMachine(gen);
+        }
+
+        // D. ESTRATÉGIA DE LAHA: SWAP (Troca) se possível, senão MOVE
+        if (!neighborSolution[targetMachineIdx].empty()) {
+            std::uniform_int_distribution<> distJobTarget(0, neighborSolution[targetMachineIdx].size() - 1);
+            std::size_t jobIdxTarget = distJobTarget(gen);
+            
+            // Realiza a Troca (Swap)
+            std::swap(neighborSolution[maxMachineIdx][jobIdxSource], 
+                      neighborSolution[targetMachineIdx][jobIdxTarget]);
+        } else {
+            // Se destino vazio, faz o Move (Inserção)
+            ValueType val = neighborSolution[maxMachineIdx][jobIdxSource];
+            neighborSolution[maxMachineIdx].erase(neighborSolution[maxMachineIdx].begin() + jobIdxSource);
+            neighborSolution[targetMachineIdx].push_back(val);
+        }
+
+        // Avaliação
+        ValueType neighborMakespan = getMakespan(neighborSolution);
+        long long delta = neighborMakespan - currentMakespan;
+
+        bool accept = false;
+        if (delta < 0) {
+            accept = true; 
+        } else {
+            // Critério de Metropolis
+            if (dist01(gen) < std::exp(-delta / temperature)) {
+                accept = true;
+            }
+        }
+
+        if (accept) {
+            currentSolution = neighborSolution;
+            currentMakespan = neighborMakespan; // Atualiza custo atual
+
+            if (currentMakespan < bestMakespan) {
+                bestSolution = currentSolution;
+                bestMakespan = currentMakespan;
+                iterationsWithoutImprovement = 0;
+            }
+        }
     } 
-    else {
-      // Piora: Aceita com probabilidade baseada em Boltzmann 
-      // Nota: Laha usa exp(-delta / (currentMakespan * T)). 
-      // Aqui usamos o padrão exp(-delta/T), ajuste o T inicial conforme necessário.
-      double probability = std::exp(-delta / temperature);
-      if (dist01(gen) < probability) {
-        accept = true;
-      }
-    }
 
-    if (accept) {
-      currentSolution = neighborSolution;
-      currentMakespan = neighborMakespan;
+    iterationsWithoutImprovement++;
+    if (iterationsWithoutImprovement > 50) break; // Critério de parada antecipada
 
-      // Atualiza o Global Best se for o melhor de todos
-      if (currentMakespan < bestMakespan) {
-        bestSolution = currentSolution;
-        bestMakespan = currentMakespan;
-        iterationsWithoutImprovement = 0;
-      } 
-      else {
-        iterationsWithoutImprovement++;
-      }
-    } 
-    else {
-      iterationsWithoutImprovement++;
-    }
-
-    // Resfria T
-    temperature *= coolingRate; 
+    temperature *= coolingRate;
+    iter++;
   }
 
   return bestSolution;
