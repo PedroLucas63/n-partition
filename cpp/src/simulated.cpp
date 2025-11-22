@@ -45,7 +45,7 @@ void run_simulation(ofstream &csv, size_t num_tasks, int winner_makespan[4]) {
   using array_type = array<vector<TaskType>, num_machines>;
   vector<TaskType> tasks = generate_tasks(num_tasks);
 
-  double ideal = std::accumulate(tasks.begin(), tasks.end(), 0.0) / num_tasks;
+  double ideal = std::accumulate(tasks.begin(), tasks.end(), 0.0) / num_machines;
 
   array<double, 4> makespans{};
   array<double, 4> distances{};

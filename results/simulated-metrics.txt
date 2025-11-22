@@ -5,10 +5,10 @@
 
 Erro médio global (Mean Distance):
 
-  Genetic: 66693.0722
-  LPT: 66736.3500
-  MULTIFIT: 67183.9611
-  LS: 70476.2944
+  Genetic: 51.7257
+  LPT: 82.0591
+  MULTIFIT: 552.7257
+  LS: 3959.0594
 
 Ranking global (1 = melhor):
 
