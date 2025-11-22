@@ -214,7 +214,7 @@ geneticAlgorithm(std::vector<ValueType> &arr) {
 
   // RNG único e distributions
   std::random_device rd;
-  std::mt19937 gen(rd());
+  std::mt19937 gen(rd()); 
   std::uniform_real_distribution<double> dist01(0.0, 1.0);
   std::uniform_int_distribution<int> distPercent(0, 99);
 
@@ -284,6 +284,7 @@ geneticAlgorithm(std::vector<ValueType> &arr) {
 
   // --- População inicial ---
   std::vector<ValueType> work = arr;
+  std::sort(work.begin(), work.end(), std::greater<ValueType>()); // LPT
   for (int i = 0; i < INITIAL_POPULATION_SIZE; ++i) {
     addIndividual(work);
     std::shuffle(work.begin(), work.end(), gen);
@@ -392,7 +393,7 @@ geneticAlgorithm(std::vector<ValueType> &arr) {
 
     if (bestFitness == makespan_opt) {
       break;
-    }
+    } 
   }
 
   // --- Retorna solução LS do melhor indivíduo ---

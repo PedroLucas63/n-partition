@@ -144,13 +144,15 @@ void writeInstanceCSV(
  */
 class ExperimentRunner {
   std::ofstream outFile; // CSV output file stream
+  std::string inputFilePath_;
   int geneticRunsCount_; // number of genetic algorithm runs per instance
 
 public:
   ExperimentRunner(
       int geneticRunsCount = 5,
+      const std::string &inputFilePath = "../instances/instances.txt",
       const std::string &outputFileName = "../results/balanced-results.csv")
-      : outFile(outputFileName, std::ios::out),
+      : outFile(outputFileName, std::ios::out), inputFilePath_(inputFilePath),
         geneticRunsCount_(geneticRunsCount) {
     if (!outFile.is_open()) {
       throw std::runtime_error("Failed to open output file.");
@@ -172,8 +174,7 @@ public:
 
   void run() {
     std::cout << "Reading instances...\n";
-    auto instances = ReadInstances::readInstances();
-    // ReadInstances::printInstances(instances);
+    auto instances = ReadInstances::readInstances(inputFilePath_);
 
     std::cout << "Running experiments...\n";
     for (size_t i = 0; i < instances.size(); ++i) {
@@ -209,6 +210,7 @@ private:
 int main(int argc, char **argv) {
   try {
     int geneticRuns = 5;
+    std::string inPath = ReadInstances::INSTANCE_PATH;
     std::string outPath = "../results/balanced-results.csv";
 
     if (argc > 1) {
@@ -219,13 +221,16 @@ int main(int argc, char **argv) {
         std::cerr << "[WARN] invalid genetic runs arg, using default = 5\n";
     }
     if (argc > 2) {
-      outPath = argv[2];
+      inPath = argv[2];
+    }
+    if (argc > 3) {
+      outPath = argv[3];
     }
 
     std::cout << "Using genetic runs = " << geneticRuns << "\n";
     std::cout << "Output CSV = " << outPath << "\n";
 
-    ExperimentRunner runner(geneticRuns, outPath);
+    ExperimentRunner runner(geneticRuns, inPath, outPath);
     runner.run();
     std::cout << "Experiment completed. Results saved to '" << outPath
               << "'.\n";

@@ -78,7 +78,7 @@ void run_simulation(ofstream &csv, size_t num_tasks, int winner_makespan[4]) {
 
     for (int run = 0; run < runs; ++run) {
       auto tasks_copy = tasks;
-      auto start = chrono::high_resolution_clock::now();
+      auto start = chrono::steady_clock::now();
 
       switch (algo_idx) {
       case 0:
@@ -95,7 +95,7 @@ void run_simulation(ofstream &csv, size_t num_tasks, int winner_makespan[4]) {
         break;
       }
 
-      auto end = chrono::high_resolution_clock::now();
+      auto end = chrono::steady_clock::now();
       run_times.push_back(chrono::duration<double>(end - start).count());
     }
 
