@@ -43,6 +43,8 @@ void writeInstanceCSV(
     long long multifitTime,
     const std::array<std::vector<partition::ValueType>, K> &cga,
     long long cgaTime,
+    const std::array<std::vector<partition::ValueType>, K> &sa, 
+    long long saTime,
     const std::vector<std::array<std::vector<partition::ValueType>, K>>
         &geneticRuns,
     const std::vector<long long> &geneticTimes) {
@@ -63,7 +65,8 @@ void writeInstanceCSV(
   os << instanceID << "," << M << "," << N << "," << B << "," << optimalMakespan
      << "," << maxGroupSum(ls) << "," << lsTime << "," << maxGroupSum(lpt)
      << "," << lptTime << "," << maxGroupSum(multifit) << "," << multifitTime
-     << "," << maxGroupSum(cga) << "," << cgaTime;
+     << "," << maxGroupSum(cga) << "," << cgaTime
+     << "," << maxGroupSum(sa) << "," << saTime;
 
   // append genetic runs results (count = geneticRuns.size())
   for (size_t i = 0; i < geneticRuns.size(); ++i) {
@@ -77,7 +80,7 @@ void writeInstanceCSV(
  * @brief Macro to generate switch cases for different template instantiations
  * of K.
  *
- * It will execute standard algorithms (LS, LPT, MULTIFIT, CGA) once and the
+ * It will execute standard algorithms (LS, LPT, MULTIFIT, CGA, SA) once and the
  * genetic algorithm R times (R = geneticRunsCount local variable).
  *
  * The macro assumes it is expanded inside a scope where:
@@ -115,6 +118,14 @@ void writeInstanceCSV(
         std::chrono::duration_cast<std::chrono::microseconds>(end - start)     \
             .count();                                                          \
                                                                                \
+    start = std::chrono::steady_clock::now();                                  \
+    auto sa = partition::SimulatedAnnealing<KVALUE>(ARR);                      \
+    end = std::chrono::steady_clock::now();                                    \
+    auto saTime =                                                              \
+        std::chrono::duration_cast<std::chrono::microseconds>(end - start)     \
+            .count();                                                          \
+                                                                               \
+                                                                               \
     /* Run genetic algorithm geneticRunsCount times and store results */       \
     std::vector<std::array<std::vector<partition::ValueType>, KVALUE>>         \
         geneticRuns;                                                           \
@@ -134,7 +145,7 @@ void writeInstanceCSV(
                                                                                \
     writeInstanceCSV<KVALUE>(OS, INSTANCEID, MVAL, NVAL, BVAL, OPTIMAL, g,     \
                              greedyTime, l, lptTime, m, multifitTime, c,       \
-                             cgaTime, geneticRuns, geneticTimes);              \
+                             cgaTime, sa, saTime, geneticRuns, geneticTimes);              \
     break;                                                                     \
   }
 
@@ -163,7 +174,8 @@ public:
             << "LS_MaxGroupSum,LS_Time(us),"
                "LPT_MaxGroupSum,LPT_Time(us),"
                "MULTIFIT_MaxGroupSum,MULTIFIT_Time(us),"
-               "CGA_MaxGroupSum,CGA_Time(us)";
+               "CGA_MaxGroupSum,CGA_Time(us),"
+               "SA_MaxGroupSum,SA_Time(us)";
 
     for (int i = 1; i <= geneticRunsCount_; ++i) {
       outFile << ",Genetic_" << i << "_MaxGroupSum,Genetic_" << i

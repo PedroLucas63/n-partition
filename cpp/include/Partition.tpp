@@ -402,6 +402,129 @@ geneticAlgorithm(std::vector<ValueType> &arr) {
   return LS<n>(bestCopy);
 }
 
+
+
+template <std::size_t n>
+std::array<std::vector<ValueType>, n>
+SimulatedAnnealing(std::vector<ValueType> &arr) {
+
+  const double initialTemp = 10000.0;
+  const double coolingRate = 0.98;
+
+  // --- 1. Configuração e Aleatoriedade ---
+  std::random_device rd;
+  std::mt19937 gen(rd());
+  std::uniform_real_distribution<> dist01(0.0, 1.0);
+  std::uniform_int_distribution<> distMachine(0, n - 1);
+
+  // Função auxiliar de Makespan 
+  auto getMakespan = [](const std::array<std::vector<ValueType>, n>& groups) {
+    ValueType maxSum = 0;
+    for (const auto& group : groups) {
+      ValueType sum = std::accumulate(group.begin(), group.end(), ValueType{0});
+      if (sum > maxSum) maxSum = sum;
+    }
+    return maxSum;
+  };
+
+  // --- 2. Lógica de Vizinhança (Baseada em Laha) ---
+  // Objetivo: Tirar carga da máquina mais cheia 
+  auto generateNeighbor = [&](std::array<std::vector<ValueType>, n> groups) {
+    // A. Achar índice da máquina com maior soma (Gargalo)
+    std::size_t maxMachineIdx = 0;
+    ValueType currentMaxSum = -1;
+    
+    // Calcula somas para achar o gargalo
+    for (std::size_t i = 0; i < n; ++i) {
+      ValueType s = std::accumulate(groups[i].begin(), groups[i].end(), ValueType{0});
+      if (s > currentMaxSum) {
+        currentMaxSum = s;
+        maxMachineIdx = i;
+      }
+    }
+
+    // Se a máquina crítica estiver vazia (improvável com LPT), retorna sem mudar
+    if (groups[maxMachineIdx].empty()) return groups;
+
+    // B. Pegar um item aleatório dela
+    std::uniform_int_distribution<> distJob(0, groups[maxMachineIdx].size() - 1);
+    std::size_t jobIdx = distJob(gen);
+    ValueType jobValue = groups[maxMachineIdx][jobIdx];
+
+    // C. Mover para outra máquina aleatória (diferente da atual)
+    std::size_t targetMachineIdx = distMachine(gen);
+    while (targetMachineIdx == maxMachineIdx && n > 1) {
+      targetMachineIdx = distMachine(gen);
+    }
+
+    // Realiza a troca (Remove da origem, adiciona no destino)
+    groups[maxMachineIdx].erase(groups[maxMachineIdx].begin() + jobIdx);
+    groups[targetMachineIdx].push_back(jobValue);
+
+    return groups; 
+  };
+
+  // --- Solução Inicial ---
+  auto currentSolution = MULTIFIT<n>(arr);
+  auto bestSolution = currentSolution;
+  auto currentMakespan = getMakespan(currentSolution);
+  auto bestMakespan = currentMakespan;
+
+  double temperature = initialTemp;
+
+  // --- 3. Loop Principal (Annealing) ---
+  int iterationsWithoutImprovement = 0;
+
+  while (temperature > 0.1 && iterationsWithoutImprovement < 1000) { 
+      
+    // Tenta gerar um vizinho
+    auto neighborSolution = generateNeighbor(currentSolution);
+    auto neighborMakespan = getMakespan(neighborSolution);
+
+    // Calcula Delta (Variação de custo)
+    long long delta = neighborMakespan - currentMakespan;
+
+    bool accept = false;
+
+    if (delta < 0) {
+      // Melhora: Aceita sempre
+      accept = true;
+    } 
+    else {
+      // Piora: Aceita com probabilidade baseada em Boltzmann 
+      // Nota: Laha usa exp(-delta / (currentMakespan * T)). 
+      // Aqui usamos o padrão exp(-delta/T), ajuste o T inicial conforme necessário.
+      double probability = std::exp(-delta / temperature);
+      if (dist01(gen) < probability) {
+        accept = true;
+      }
+    }
+
+    if (accept) {
+      currentSolution = neighborSolution;
+      currentMakespan = neighborMakespan;
+
+      // Atualiza o Global Best se for o melhor de todos
+      if (currentMakespan < bestMakespan) {
+        bestSolution = currentSolution;
+        bestMakespan = currentMakespan;
+        iterationsWithoutImprovement = 0;
+      } 
+      else {
+        iterationsWithoutImprovement++;
+      }
+    } 
+    else {
+      iterationsWithoutImprovement++;
+    }
+
+    // Resfria T
+    temperature *= coolingRate; 
+  }
+
+  return bestSolution;
+}
+
 template <std::size_t n>
 std::array<std::vector<ValueType>, n>
 geneticAlgorithm2(std::vector<ValueType> &arr) {

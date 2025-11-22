@@ -46,7 +46,8 @@ def main():
         "LS": ("LS_MaxGroupSum", "LS_Time(us)"),
         "LPT": ("LPT_MaxGroupSum", "LPT_Time(us)"),
         "MultiFit": ("MULTIFIT_MaxGroupSum", "MULTIFIT_Time(us)"),
-        "CGA": ("CGA_MaxGroupSum", "CGA_Time(us)")
+        "CGA": ("CGA_MaxGroupSum", "CGA_Time(us)"),
+        "SA": ("SA_MaxGroupSum", "SA_Time(us)")  # <--- ADICIONE ESTA LINHA    }
     }
 
     data = []

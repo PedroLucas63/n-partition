@@ -69,7 +69,7 @@ void run_simulation(ofstream &csv, size_t num_tasks, int winner_makespan[4]) {
   array<double, 4> times_min{};
   array<double, 4> times_max{};
 
-  vector<string> algo_names = {"LS", "LPT", "MULTIFIT", "Genetic"};
+  vector<string> algo_names = {"LS", "LPT", "MULTIFIT", "Genetic", "AnnealingLaha"};
 
   for (int algo_idx = 0; algo_idx < 4; ++algo_idx) {
     const int runs = 5;
@@ -92,6 +92,9 @@ void run_simulation(ofstream &csv, size_t num_tasks, int winner_makespan[4]) {
         break;
       case 3:
         allocation = geneticAlgorithm<num_machines>(tasks_copy);
+        break;
+      case 4:
+        allocation = SimulatedAnnealing<num_machines>(tasks_copy);
         break;
       }
 
