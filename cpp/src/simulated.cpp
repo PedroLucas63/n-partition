@@ -48,13 +48,8 @@ double mean_distance_to_ideal(const array<vector<TaskType>, n> &allocation) {
                         static_cast<TaskType>(0));
 
   double ideal = static_cast<double>(total) / n;
-  double sum_dist = 0.0;
-  for (const auto &machine_tasks : allocation) {
-    double machine_sum =
-        accumulate(machine_tasks.begin(), machine_tasks.end(), 0.0);
-    sum_dist += abs(machine_sum - ideal);
-  }
-  return sum_dist / n;
+  double dist = makespan(allocation) - ideal;
+  return dist;
 }
 
 // Função template para rodar simulação com número fixo de máquinas
