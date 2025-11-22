@@ -39,31 +39,15 @@ TaskType makespan(const array<vector<TaskType>, n> &allocation) {
   return max_time;
 }
 
-// Calcula média da distância para makespan ideal
-template <size_t n>
-double mean_distance_to_ideal(const array<vector<TaskType>, n> &allocation) {
-  TaskType total = 0;
-  for (const auto &machine_tasks : allocation)
-    total += accumulate(machine_tasks.begin(), machine_tasks.end(),
-                        static_cast<TaskType>(0));
-
-  double ideal = static_cast<double>(total) / n;
-  double sum_dist = 0.0;
-  for (const auto &machine_tasks : allocation) {
-    double machine_sum =
-        accumulate(machine_tasks.begin(), machine_tasks.end(), 0.0);
-    sum_dist += abs(machine_sum - ideal);
-  }
-  return sum_dist / n;
-}
-
 // Função template para rodar simulação com número fixo de máquinas
 template <size_t num_machines>
 void run_simulation(ofstream &csv, size_t num_tasks, int winner_makespan[4]) {
   using array_type = array<vector<TaskType>, num_machines>;
   vector<TaskType> tasks = generate_tasks(num_tasks);
 
-  array<TaskType, 4> makespans{};
+  double ideal = std::accumulate(tasks.begin(), tasks.end(), 0.0) / num_machines;
+
+  array<double, 4> makespans{};
   array<double, 4> distances{};
   array<double, 4> times_mean{};
   array<double, 4> times_min{};
@@ -99,6 +83,7 @@ void run_simulation(ofstream &csv, size_t num_tasks, int winner_makespan[4]) {
       }
 
       auto end = chrono::steady_clock::now();
+      makespans[algo_idx] += makespan<num_machines>(allocation);
       run_times.push_back(chrono::duration<double>(end - start).count());
     }
 
@@ -107,8 +92,8 @@ void run_simulation(ofstream &csv, size_t num_tasks, int winner_makespan[4]) {
     times_min[algo_idx] = *min_element(run_times.begin(), run_times.end());
     times_max[algo_idx] = *max_element(run_times.begin(), run_times.end());
 
-    makespans[algo_idx] = makespan<num_machines>(allocation);
-    distances[algo_idx] = mean_distance_to_ideal<num_machines>(allocation);
+    makespans[algo_idx] /= runs;
+    distances[algo_idx] = std::abs(makespans[algo_idx] - ideal);
   }
 
   int min_makespan_idx = distance(
