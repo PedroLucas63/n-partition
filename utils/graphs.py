@@ -46,6 +46,39 @@ def import_data(path: str) -> pd.DataFrame:
    """
    return pd.read_csv(path)
 
+def detect_meta_prefixes(df: pd.DataFrame, exclude_prefixes=None):
+   """
+   Detecta prefixes que aparecem em colunas do tipo:
+     <PREFIX>_..._MaxGroupSum
+     <PREFIX>_..._Time(us)
+
+   Retorna lista ordenada de prefixes detectados (sem os exclude_prefixes) e
+   um dicionário { prefix: { "makes": [...], "times": [...] } }.
+   """
+   meta = {}
+   for c in df.columns:
+      m = re.match(r"(.+?)_.*_MaxGroupSum$", c)
+      if m:
+         p = m.group(1)
+         if exclude_prefixes and p in exclude_prefixes:
+            continue
+         meta.setdefault(p, {"makes": [], "times": []})
+         meta[p]["makes"].append(c)
+   for c in df.columns:
+      m = re.match(r"(.+?)_.*_Time\(us\)$", c)
+      if m:
+         p = m.group(1)
+         if exclude_prefixes and p in exclude_prefixes:
+            continue
+         meta.setdefault(p, {"makes": [], "times": []})
+         meta[p]["times"].append(c)
+   # ordenar para consistência
+   prefixes = sorted(meta.keys())
+   for p in prefixes:
+      meta[p]["makes"].sort()
+      meta[p]["times"].sort()
+   return prefixes, meta
+
 def plot(df: pd.DataFrame, output_path: str):
    """
    Generate various graphs from data.
@@ -72,46 +105,60 @@ def plot(df: pd.DataFrame, output_path: str):
    # Work on a copy to avoid SettingWithCopyWarning
    df = df.copy()
 
+   # checagens básicas
+   if "OptimalMakespan" not in df.columns:
+      raise RuntimeError("Coluna 'OptimalMakespan' não encontrada no CSV.")
+
    # --------------------------
-   # Detect Genetic columns and compute means (same behaviour as metrics.py)
+   # Detect metaheuristics generically (substitui bloco fixo do Genetic)
    # --------------------------
-   genetic_makespan_cols = [c for c in df.columns if re.match(r"Genetic.*_MaxGroupSum", c)]
-   genetic_time_cols = [c for c in df.columns if re.match(r"Genetic.*_Time\(us\)", c)]
-   genetic_makespan_cols.sort()
-   genetic_time_cols.sort()
+   # prefixes a excluir (algoritmos simples já conhecidos)
+   exclude_prefixes = ["LS", "LPT", "MULTIFIT", "CGA"]
+   prefixes, meta_map = detect_meta_prefixes(df, exclude_prefixes=exclude_prefixes)
 
-   if genetic_makespan_cols:
-      # média das execuções do genético (makespan)
-      df["Genetic_Mean_MaxGroupSum"] = df[genetic_makespan_cols].mean(axis=1)
-   if genetic_time_cols:
-      # média das execuções do genético (tempo)
-      df["Genetic_Mean_Time(us)"] = df[genetic_time_cols].mean(axis=1)
+   # criar colunas agregadas (média das execuções) e hits para cada prefix detectado
+   for prefix in prefixes:
+      makes = meta_map[prefix].get("makes", [])
+      times = meta_map[prefix].get("times", [])
 
-   # criar indicador de hit do genético: se qualquer execução atingiu o ótimo
-   if genetic_makespan_cols:
-      df["Genetic_hit"] = df[genetic_makespan_cols].eq(df["OptimalMakespan"], axis=0).any(axis=1).astype(int)
-   else:
-      df["Genetic_hit"] = 0
+      if makes:
+         df[f"{prefix}_Mean_MaxGroupSum"] = df[makes].mean(axis=1)
+         # hit se ANY run atingiu o ótimo
+         df[f"{prefix}_hit"] = df[makes].eq(df["OptimalMakespan"], axis=0).any(axis=1).astype(int)
+      else:
+         df[f"{prefix}_hit"] = 0
 
-   # Rename time columns for plotting convenience. Include Genetic mean time if present.
+      if times:
+         df[f"{prefix}_Mean_Time(us)"] = df[times].mean(axis=1)
+
+   # --------------------------
+   # Rename time columns for plotting convenience. Include meta mean times if present.
+   # --------------------------
    rename_map = {
       "LS_Time(us)": "LS",
       "LPT_Time(us)": "LPT",
       "MULTIFIT_Time(us)": "MULTIFIT",
       "CGA_Time(us)": "CGA"
    }
-   if "Genetic_Mean_Time(us)" in df.columns:
-      rename_map["Genetic_Mean_Time(us)"] = "Genetic"
+
+   # adicionar metas detectadas que têm coluna de tempo média
+   for prefix in prefixes:
+      mean_time_col = f"{prefix}_Mean_Time(us)"
+      if mean_time_col in df.columns:
+         rename_map[mean_time_col] = prefix
 
    df_plot = df.rename(columns=rename_map)
 
    # Time columns to use in plots (only those present after rename)
-   time_cols = [c for c in ["LS", "LPT", "MULTIFIT", "CGA", "Genetic"] if c in df_plot.columns]
+   base_time_order = ["LS", "LPT", "MULTIFIT", "CGA"]
+   time_cols = [c for c in base_time_order + prefixes if c in df_plot.columns]
 
    # 1️⃣ Gráficos de linha comparativos por N, M e B (log scale)
    for group_by in ["N", "M", "B"]:
       # ensure column exists in df
       if group_by not in df_plot.columns:
+         continue
+      if not time_cols:
          continue
       df_grouped = df_plot.groupby(group_by)[time_cols].mean().reset_index()
       plt.figure(figsize=(8,5))
@@ -133,10 +180,12 @@ def plot(df: pd.DataFrame, output_path: str):
       fig = plt.figure(figsize=(10,7))
       ax = fig.add_subplot(111, projection='3d')
       df_3d = df_plot.groupby([x_col, y_col])[alg].mean().reset_index()
-      X, Y = np.meshgrid(sorted(df_3d[x_col].unique()), sorted(df_3d[y_col].unique()))
+      x_vals = sorted(df_3d[x_col].unique())
+      y_vals = sorted(df_3d[y_col].unique())
+      X, Y = np.meshgrid(x_vals, y_vals)
       Z = np.full_like(X, np.nan, dtype=float)
-      for i, x_val in enumerate(sorted(df_3d[x_col].unique())):
-         for j, y_val in enumerate(sorted(df_3d[y_col].unique())):
+      for i, x_val in enumerate(x_vals):
+         for j, y_val in enumerate(y_vals):
             row = df_3d[(df_3d[x_col]==x_val) & (df_3d[y_col]==y_val)]
             if not row.empty:
                Z[j,i] = row[alg].values[0]
@@ -159,13 +208,12 @@ def plot(df: pd.DataFrame, output_path: str):
       plot_3d('M','B', alg=algo)
 
    # 3️⃣ Precisão e erro relativo em relação ao ótimo
-   # Prepare list of proximity/ error algorithms (use Genetic mean if available)
-   proximity_algos = ["LS", "LPT", "MULTIFIT", "CGA"]
-   if "Genetic_Mean_MaxGroupSum" in df_plot.columns:
-      proximity_algos.append("Genetic")
+   # Prepare list of proximity/ error algorithms (include detected meta prefixes)
+   proximity_algos = ["LS", "LPT", "MULTIFIT", "CGA"] + prefixes
 
    for algo in proximity_algos:
-      makespan_col = f"{algo}_MaxGroupSum" if algo != "Genetic" else "Genetic_Mean_MaxGroupSum"
+      # escolher a coluna de makespan correta: se for meta, usar Mean; senão coluna direta
+      makespan_col = f"{algo}_Mean_MaxGroupSum" if algo in prefixes else f"{algo}_MaxGroupSum"
       # guard clause if column not present
       if makespan_col not in df_plot.columns:
          continue
@@ -232,21 +280,15 @@ def plot(df: pd.DataFrame, output_path: str):
          pass
 
    # 4️⃣ Score de acertos (fração de instâncias que atingiram o ótimo)
-   algorithms = ["LS", "LPT", "MULTIFIT", "CGA"]
-   if "Genetic_Mean_MaxGroupSum" in df_plot.columns:
-      algorithms.append("Genetic")
+   algorithms = ["LS", "LPT", "MULTIFIT", "CGA"] + prefixes
 
    # Criar coluna indicando se o algoritmo acertou o ótimo (1) ou não (0)
    for algo in algorithms:
-      makespan_col = f"{algo}_MaxGroupSum" if algo != "Genetic" else "Genetic_Mean_MaxGroupSum"
+      makespan_col = f"{algo}_Mean_MaxGroupSum" if algo in prefixes else f"{algo}_MaxGroupSum"
       if makespan_col in df_plot.columns:
          df_plot[f"{algo}_hit"] = (df_plot[makespan_col] == df_plot["OptimalMakespan"]).astype(int)
       else:
          df_plot[f"{algo}_hit"] = 0
-
-   # For Genetic we also want to reflect if any execution hit optimal (already computed)
-   if "Genetic_hit" in df_plot.columns:
-      df_plot["Genetic_hit"] = df_plot["Genetic_hit"]
 
    # Gráficos de score por N, M, B
    for group_by in ["N", "M", "B"]:

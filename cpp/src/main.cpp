@@ -43,8 +43,8 @@ void writeInstanceCSV(
     long long multifitTime,
     const std::array<std::vector<partition::ValueType>, K> &cga,
     long long cgaTime,
-    const std::array<std::vector<partition::ValueType>, K> &sa, 
-    long long saTime,
+    const std::vector<std::array<std::vector<partition::ValueType>, K>> &saRuns,
+    const std::vector<long long> &saTimes,
     const std::vector<std::array<std::vector<partition::ValueType>, K>>
         &geneticRuns,
     const std::vector<long long> &geneticTimes) {
@@ -65,12 +65,15 @@ void writeInstanceCSV(
   os << instanceID << "," << M << "," << N << "," << B << "," << optimalMakespan
      << "," << maxGroupSum(ls) << "," << lsTime << "," << maxGroupSum(lpt)
      << "," << lptTime << "," << maxGroupSum(multifit) << "," << multifitTime
-     << "," << maxGroupSum(cga) << "," << cgaTime
-     << "," << maxGroupSum(sa) << "," << saTime;
+     << "," << maxGroupSum(cga) << "," << cgaTime;
 
   // append genetic runs results (count = geneticRuns.size())
   for (size_t i = 0; i < geneticRuns.size(); ++i) {
     os << "," << maxGroupSum(geneticRuns[i]) << "," << geneticTimes[i];
+  }
+
+  for (size_t i = 0; i < saRuns.size(); ++i) {
+    os << "," << maxGroupSum(saRuns[i]) << "," << saTimes[i];
   }
 
   os << "\n";
@@ -118,21 +121,29 @@ void writeInstanceCSV(
         std::chrono::duration_cast<std::chrono::microseconds>(end - start)     \
             .count();                                                          \
                                                                                \
-    start = std::chrono::steady_clock::now();                                  \
-    auto sa = partition::SimulatedAnnealing<KVALUE>(ARR);                      \
-    end = std::chrono::steady_clock::now();                                    \
-    auto saTime =                                                              \
-        std::chrono::duration_cast<std::chrono::microseconds>(end - start)     \
-            .count();                                                          \
+    /* Run sa algorithm metaHeuristicsRuns times and store results */          \
+    std::vector<std::array<std::vector<partition::ValueType>, KVALUE>> saRuns; \
+    std::vector<long long> saTimes;                                            \
+    saRuns.reserve(metaHeuristicsRuns);                                        \
+    saTimes.reserve(metaHeuristicsRuns);                                       \
+    for (int gi = 0; gi < metaHeuristicsRuns; ++gi) {                          \
+      start = std::chrono::steady_clock::now();                                \
+      auto gn = partition::SimulatedAnnealing<KVALUE>(ARR);                    \
+      end = std::chrono::steady_clock::now();                                  \
+      auto gTime =                                                             \
+          std::chrono::duration_cast<std::chrono::microseconds>(end - start)   \
+              .count();                                                        \
+      saRuns.push_back(std::move(gn));                                         \
+      saTimes.push_back(gTime);                                                \
+    }                                                                          \
                                                                                \
-                                                                               \
-    /* Run genetic algorithm geneticRunsCount times and store results */       \
+    /* Run genetic algorithm metaHeuristicsRuns times and store results */     \
     std::vector<std::array<std::vector<partition::ValueType>, KVALUE>>         \
         geneticRuns;                                                           \
     std::vector<long long> geneticTimes;                                       \
-    geneticRuns.reserve(geneticRunsCount);                                     \
-    geneticTimes.reserve(geneticRunsCount);                                    \
-    for (int gi = 0; gi < geneticRunsCount; ++gi) {                            \
+    geneticRuns.reserve(metaHeuristicsRuns);                                   \
+    geneticTimes.reserve(metaHeuristicsRuns);                                  \
+    for (int gi = 0; gi < metaHeuristicsRuns; ++gi) {                          \
       start = std::chrono::steady_clock::now();                                \
       auto gn = partition::geneticAlgorithm<KVALUE>(ARR);                      \
       end = std::chrono::steady_clock::now();                                  \
@@ -145,7 +156,8 @@ void writeInstanceCSV(
                                                                                \
     writeInstanceCSV<KVALUE>(OS, INSTANCEID, MVAL, NVAL, BVAL, OPTIMAL, g,     \
                              greedyTime, l, lptTime, m, multifitTime, c,       \
-                             cgaTime, sa, saTime, geneticRuns, geneticTimes);              \
+                             cgaTime, saRuns, saTimes, geneticRuns,            \
+                             geneticTimes);                                    \
     break;                                                                     \
   }
 
@@ -156,30 +168,33 @@ void writeInstanceCSV(
 class ExperimentRunner {
   std::ofstream outFile; // CSV output file stream
   std::string inputFilePath_;
-  int geneticRunsCount_; // number of genetic algorithm runs per instance
+  int metaHeuristicsRuns_; // number of genetic algorithm runs per instance
 
 public:
   ExperimentRunner(
-      int geneticRunsCount = 5,
+      int metaHeuristicsRuns = 5,
       const std::string &inputFilePath = "../instances/instances.txt",
       const std::string &outputFileName = "../results/balanced-results.csv")
       : outFile(outputFileName, std::ios::out), inputFilePath_(inputFilePath),
-        geneticRunsCount_(geneticRunsCount) {
+        metaHeuristicsRuns_(metaHeuristicsRuns) {
     if (!outFile.is_open()) {
       throw std::runtime_error("Failed to open output file.");
     }
 
-    // write CSV header dynamically based on geneticRunsCount_
+    // write CSV header dynamically based on metaHeuristicsRuns_
     outFile << "InstanceID,M,N,B,OptimalMakespan,"
             << "LS_MaxGroupSum,LS_Time(us),"
                "LPT_MaxGroupSum,LPT_Time(us),"
                "MULTIFIT_MaxGroupSum,MULTIFIT_Time(us),"
-               "CGA_MaxGroupSum,CGA_Time(us),"
-               "SA_MaxGroupSum,SA_Time(us)";
+               "CGA_MaxGroupSum,CGA_Time(us)";
 
-    for (int i = 1; i <= geneticRunsCount_; ++i) {
+    for (int i = 1; i <= metaHeuristicsRuns_; ++i) {
       outFile << ",Genetic_" << i << "_MaxGroupSum,Genetic_" << i
               << "_Time(us)";
+    }
+
+    for (int i = 1; i <= metaHeuristicsRuns_; ++i) {
+      outFile << ",SA_" << i << "_MaxGroupSum,SA_" << i << "_Time(us)";
     }
     outFile << "\n";
   }
@@ -205,7 +220,7 @@ private:
                         size_t instanceID, int Mval, int Nval, int Bval,
                         partition::ValueType optimalSum, std::ostream &os) {
     // make geneticRunsCount available for the macro
-    int geneticRunsCount = geneticRunsCount_;
+    int metaHeuristicsRuns = metaHeuristicsRuns_;
 
     switch (Nval) {
       RUN_FOR_K_CSV(2, arr, instanceID, Mval, Nval, Bval, optimalSum, os)

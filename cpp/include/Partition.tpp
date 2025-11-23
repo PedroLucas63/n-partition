@@ -195,8 +195,9 @@ geneticAlgorithm(std::vector<ValueType> &arr) {
   const int QUEUE_MAX_SIZE = 50;
   const int INITIAL_POPULATION_SIZE = 20;
   const int CROSSOVER_FACTOR = 2;
-  const int MUTATION_PROBABILITY = 40; // percentage
+  const int MUTATION_MAX_SIZE = 3; // size of the mutation
   const int MAX_GENERATIONS_WITHOUT_IMPROVEMENT = 5;
+  const int MUTATION_PROBABILITY = 40; // percentage
 
   // -- Calcula o makespan ótimo --
   ValueType sum = std::accumulate(arr.begin(), arr.end(), 0);
@@ -214,7 +215,7 @@ geneticAlgorithm(std::vector<ValueType> &arr) {
 
   // RNG único e distributions
   std::random_device rd;
-  std::mt19937 gen(rd()); 
+  std::mt19937 gen(rd());
   std::uniform_real_distribution<double> dist01(0.0, 1.0);
   std::uniform_int_distribution<int> distPercent(0, 99);
 
@@ -358,8 +359,13 @@ geneticAlgorithm(std::vector<ValueType> &arr) {
 
     size_t a = idxDist(gen);
     size_t b = idxDist(gen);
-    if (a > b)
+    if (a > b) {
       std::swap(a, b);
+    }
+
+    if (b - a > MUTATION_MAX_SIZE) {
+      b = a + MUTATION_MAX_SIZE;
+    }
     std::reverse(genes.begin() + a, genes.begin() + b);
 
     return genes;
@@ -383,6 +389,11 @@ geneticAlgorithm(std::vector<ValueType> &arr) {
       addIndividual(child);
     }
 
+    while (distPercent(gen) < MUTATION_PROBABILITY) {
+      addIndividual(work);
+      std::shuffle(work.begin(), work.end(), gen);
+    }
+
     ValueType currentBest = population.begin()->second;
     if (currentBest < bestFitness) {
       bestFitness = currentBest;
@@ -393,7 +404,7 @@ geneticAlgorithm(std::vector<ValueType> &arr) {
 
     if (bestFitness == makespan_opt) {
       break;
-    } 
+    }
   }
 
   // --- Retorna solução LS do melhor indivíduo ---
@@ -402,7 +413,6 @@ geneticAlgorithm(std::vector<ValueType> &arr) {
   return LS<n>(bestCopy);
 }
 
-
 template <std::size_t n>
 std::array<std::vector<ValueType>, n>
 SimulatedAnnealing(std::vector<ValueType> &arr) {
@@ -410,10 +420,11 @@ SimulatedAnnealing(std::vector<ValueType> &arr) {
   // --- 1. Configuração ---
   // Ajuste: Temperatura baseada na média dos dados para ser adaptável
   double avgVal = std::accumulate(arr.begin(), arr.end(), 0.0) / arr.size();
-  
-  double temperature = avgVal * 0.5; // Começa aceitando pioras de ~50% de um job médio
-  const double coolingRate = 0.95;   // Resfriamento mais lento (95%)
-  const int neighborsPerTemp = 10;  // Tenta 100 vizinhos antes de esfriar
+
+  double temperature =
+      avgVal * 0.5; // Começa aceitando pioras de ~50% de um job médio
+  const double coolingRate = 0.95; // Resfriamento mais lento (95%)
+  const int neighborsPerTemp = 10; // Tenta 100 vizinhos antes de esfriar
 
   std::random_device rd;
   std::mt19937 gen(rd());
@@ -421,103 +432,110 @@ SimulatedAnnealing(std::vector<ValueType> &arr) {
   std::uniform_int_distribution<> distMachine(0, n - 1);
 
   // Lambda de Makespan (Otimizado)
-  auto getMakespan = [](const std::array<std::vector<ValueType>, n>& groups) {
+  auto getMakespan = [](const std::array<std::vector<ValueType>, n> &groups) {
     ValueType maxSum = 0;
-    for (const auto& group : groups) {
+    for (const auto &group : groups) {
       ValueType sum = std::accumulate(group.begin(), group.end(), ValueType{0});
-      if (sum > maxSum) maxSum = sum;
+      if (sum > maxSum)
+        maxSum = sum;
     }
     return maxSum;
   };
 
   // --- Solução Inicial ---
-  auto currentSolution = LPT<n>(arr); 
+  auto currentSolution = LPT<n>(arr);
   auto bestSolution = currentSolution;
-  
+
   ValueType currentMakespan = getMakespan(currentSolution);
   ValueType bestMakespan = currentMakespan;
 
   // --- 2. Loop Principal ---
   int iterationsWithoutImprovement = 0;
-  int maxTotalIterations = 5000; 
+  int maxTotalIterations = 5000;
   int iter = 0;
 
   while (temperature > 0.1 && iter < maxTotalIterations) {
 
     for (int i = 0; i < neighborsPerTemp; ++i) {
-        
-        // A. Identificar Máquina Crítica (Gargalo)
-        std::size_t maxMachineIdx = 0;
-        ValueType currentMaxSum = 0;
-        
-        // Recalcula somas locais para garantir precisão
-        std::array<ValueType, n> machineSums;
-        for(size_t m=0; m<n; ++m) {
-            machineSums[m] = std::accumulate(currentSolution[m].begin(), currentSolution[m].end(), ValueType{0});
-            if(machineSums[m] > currentMaxSum) {
-                currentMaxSum = machineSums[m];
-                maxMachineIdx = m;
-            }
+
+      // A. Identificar Máquina Crítica (Gargalo)
+      std::size_t maxMachineIdx = 0;
+      ValueType currentMaxSum = 0;
+
+      // Recalcula somas locais para garantir precisão
+      std::array<ValueType, n> machineSums;
+      for (size_t m = 0; m < n; ++m) {
+        machineSums[m] = std::accumulate(
+            currentSolution[m].begin(), currentSolution[m].end(), ValueType{0});
+        if (machineSums[m] > currentMaxSum) {
+          currentMaxSum = machineSums[m];
+          maxMachineIdx = m;
         }
+      }
 
-        if (currentSolution[maxMachineIdx].empty()) continue;
+      if (currentSolution[maxMachineIdx].empty())
+        continue;
 
-        // Copia solução para gerar vizinho
-        auto neighborSolution = currentSolution;
+      // Copia solução para gerar vizinho
+      auto neighborSolution = currentSolution;
 
-        // B. Selecionar Job da Máquina Crítica
-        std::uniform_int_distribution<> distJobSource(0, neighborSolution[maxMachineIdx].size() - 1);
-        std::size_t jobIdxSource = distJobSource(gen);
-        
-        // C. Selecionar Máquina Destino Aleatória
-        std::size_t targetMachineIdx = distMachine(gen);
-        while (targetMachineIdx == maxMachineIdx && n > 1) {
-            targetMachineIdx = distMachine(gen);
+      // B. Selecionar Job da Máquina Crítica
+      std::uniform_int_distribution<> distJobSource(
+          0, neighborSolution[maxMachineIdx].size() - 1);
+      std::size_t jobIdxSource = distJobSource(gen);
+
+      // C. Selecionar Máquina Destino Aleatória
+      std::size_t targetMachineIdx = distMachine(gen);
+      while (targetMachineIdx == maxMachineIdx && n > 1) {
+        targetMachineIdx = distMachine(gen);
+      }
+
+      // D. ESTRATÉGIA DE LAHA: SWAP (Troca) se possível, senão MOVE
+      if (!neighborSolution[targetMachineIdx].empty()) {
+        std::uniform_int_distribution<> distJobTarget(
+            0, neighborSolution[targetMachineIdx].size() - 1);
+        std::size_t jobIdxTarget = distJobTarget(gen);
+
+        // Realiza a Troca (Swap)
+        std::swap(neighborSolution[maxMachineIdx][jobIdxSource],
+                  neighborSolution[targetMachineIdx][jobIdxTarget]);
+      } else {
+        // Se destino vazio, faz o Move (Inserção)
+        ValueType val = neighborSolution[maxMachineIdx][jobIdxSource];
+        neighborSolution[maxMachineIdx].erase(
+            neighborSolution[maxMachineIdx].begin() + jobIdxSource);
+        neighborSolution[targetMachineIdx].push_back(val);
+      }
+
+      // Avaliação
+      ValueType neighborMakespan = getMakespan(neighborSolution);
+      long long delta = neighborMakespan - currentMakespan;
+
+      bool accept = false;
+      if (delta < 0) {
+        accept = true;
+      } else {
+        // Critério de Metropolis
+        if (dist01(gen) < std::exp(-delta / temperature)) {
+          accept = true;
         }
+      }
 
-        // D. ESTRATÉGIA DE LAHA: SWAP (Troca) se possível, senão MOVE
-        if (!neighborSolution[targetMachineIdx].empty()) {
-            std::uniform_int_distribution<> distJobTarget(0, neighborSolution[targetMachineIdx].size() - 1);
-            std::size_t jobIdxTarget = distJobTarget(gen);
-            
-            // Realiza a Troca (Swap)
-            std::swap(neighborSolution[maxMachineIdx][jobIdxSource], 
-                      neighborSolution[targetMachineIdx][jobIdxTarget]);
-        } else {
-            // Se destino vazio, faz o Move (Inserção)
-            ValueType val = neighborSolution[maxMachineIdx][jobIdxSource];
-            neighborSolution[maxMachineIdx].erase(neighborSolution[maxMachineIdx].begin() + jobIdxSource);
-            neighborSolution[targetMachineIdx].push_back(val);
+      if (accept) {
+        currentSolution = neighborSolution;
+        currentMakespan = neighborMakespan; // Atualiza custo atual
+
+        if (currentMakespan < bestMakespan) {
+          bestSolution = currentSolution;
+          bestMakespan = currentMakespan;
+          iterationsWithoutImprovement = 0;
         }
-
-        // Avaliação
-        ValueType neighborMakespan = getMakespan(neighborSolution);
-        long long delta = neighborMakespan - currentMakespan;
-
-        bool accept = false;
-        if (delta < 0) {
-            accept = true; 
-        } else {
-            // Critério de Metropolis
-            if (dist01(gen) < std::exp(-delta / temperature)) {
-                accept = true;
-            }
-        }
-
-        if (accept) {
-            currentSolution = neighborSolution;
-            currentMakespan = neighborMakespan; // Atualiza custo atual
-
-            if (currentMakespan < bestMakespan) {
-                bestSolution = currentSolution;
-                bestMakespan = currentMakespan;
-                iterationsWithoutImprovement = 0;
-            }
-        }
-    } 
+      }
+    }
 
     iterationsWithoutImprovement++;
-    if (iterationsWithoutImprovement > 50) break; // Critério de parada antecipada
+    if (iterationsWithoutImprovement > 50)
+      break; // Critério de parada antecipada
 
     temperature *= coolingRate;
     iter++;
