@@ -187,17 +187,50 @@ def main():
 
             max_time = float(np.max(times_matrix))
             min_time = float(np.min(times_matrix))
+            avg_time_total = float(np.mean(times_matrix))
 
             max_hits = int(np.max(num_optimal_per_run))
             min_hits = int(np.min(num_optimal_per_run))
+            total_optimal_hits = int(np.sum(num_optimal_per_run))
 
-            max_deviation = float(np.max(np.max(deviation_per_run, axis=1)))
-            min_deviation = float(np.min(np.min(deviation_per_run, axis=1)))
+            max_deviation = float(np.max(np.abs(deviation_per_run)))
+            min_deviation = float(np.min(np.abs(deviation_per_run)))
+
+            # --- Novas Métricas Solicitadas ---
+            
+            # 1. Afastamento da melhor solução para a melhor solução conhecida
+            # Melhor solução encontrada pelo algoritmo para cada instância (min entre as runs)
+            best_sol_per_instance = np.min(makes_matrix, axis=0)
+            # Gap dessa melhor solução
+            best_sol_gap = 100.0 * (best_sol_per_instance - optimal) / optimal
+            avg_best_gap = float(np.mean(np.abs(best_sol_gap)))
+
+            # 2. Afastamento da média das melhores soluções para a melhor solução conhecida
+            # Média das soluções encontradas (já calculado em mean_deviation_per_run, mas vamos confirmar)
+            # mean_deviation_per_run é a média do erro de cada run. A média dessas médias é o erro médio global.
+            avg_avg_gap = float(np.mean(mean_deviation_per_run))
+
+            # 3. Número de vezes em que a melhor solução do seu algoritmo é alcançada
+            # Para cada instância, quantas runs atingiram o best_sol_per_instance?
+            # Comparar makes_matrix com best_sol_per_instance (broadcast)
+            hits_best_sol = np.sum(makes_matrix == best_sol_per_instance, axis=0)
+            avg_best_sol_freq = float(np.mean(hits_best_sol))
+
+            # 4. Quantidade de instâncias onde a solução ótima foi encontrada pelo menos uma vez (União das soluções ótimas)
+            # Verifica se para cada instância, alguma das runs encontrou o ótimo
+            is_optimal_matrix = (makes_matrix == optimal)
+            instance_solved_at_least_once = np.any(is_optimal_matrix, axis=0)
+            unique_instances_optimal = int(np.sum(instance_solved_at_least_once))
 
             meta_summary = {
                 "Metaheuristic": prefix,
                 "NumRunsDetected": len(makespan_cols),
-                "AvgDeviationFromBestKnown_pct": float(np.mean(mean_deviation_per_run)),
+                "AvgAvgGap_pct": avg_avg_gap,                 
+                "AvgBestGap_pct": avg_best_gap,               
+                "AvgBestSolFreq": avg_best_sol_freq,          
+                "TotalOptimalHits": total_optimal_hits,
+                "UniqueInstancesOptimal": unique_instances_optimal, # Novo campo
+                "AvgTime_us": avg_time_total,                 
                 "MaxExecutionTime_us": max_time,
                 "MinExecutionTime_us": min_time,
                 "MaxOptimalHitsInRun": max_hits,

@@ -1,3 +1,3 @@
-Metaheuristic,NumRunsDetected,AvgDeviationFromBestKnown_pct,MaxExecutionTime_us,MinExecutionTime_us,MaxOptimalHitsInRun,MinOptimalHitsInRun,MaxDeviationInRun_pct,MinDeviationInRun_pct
-Genetic,5,0.1797263278706699,17246.0,137.0,1242,1226,7.6923076923076925,0.0
-SA,5,0.14356695146767118,2917.0,323.0,1225,1212,10.062790291321535,0.0
+Metaheuristic,NumRunsDetected,AvgAvgGap_pct,AvgBestGap_pct,AvgBestSolFreq,TotalOptimalHits,UniqueInstancesOptimal,AvgTime_us,MaxExecutionTime_us,MinExecutionTime_us,MaxOptimalHitsInRun,MinOptimalHitsInRun,MaxDeviationInRun_pct,MinDeviationInRun_pct
+Genetic,5,0.1797263278706699,0.05907964297779577,3.854022988505747,6177,1379,2419.388620689655,17246.0,137.0,1242,1226,7.6923076923076925,0.0
+SA,5,0.14356695146767118,0.06444329784890318,3.938505747126437,6094,1330,721.3463218390805,2917.0,323.0,1225,1212,10.062790291321535,0.0
