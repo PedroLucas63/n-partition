@@ -41,21 +41,21 @@ TaskType makespan(const array<vector<TaskType>, n> &allocation) {
 
 // Função template para rodar simulação com número fixo de máquinas
 template <size_t num_machines>
-void run_simulation(ofstream &csv, size_t num_tasks, int winner_makespan[4]) {
+void run_simulation(ofstream &csv, size_t num_tasks, int winner_makespan[6]) {
   using array_type = array<vector<TaskType>, num_machines>;
   vector<TaskType> tasks = generate_tasks(num_tasks);
 
   double ideal = std::accumulate(tasks.begin(), tasks.end(), 0.0) / num_machines;
 
-  array<double, 5> makespans{};
-  array<double, 5> distances{};
-  array<double, 5> times_mean{};
-  array<double, 5> times_min{};
-  array<double, 5> times_max{};
+  array<double, 6> makespans{};
+  array<double, 6> distances{};
+  array<double, 6> times_mean{};
+  array<double, 6> times_min{};
+  array<double, 6> times_max{};
 
-  vector<string> algo_names = {"LS", "LPT", "MULTIFIT", "Genetic", "SA"};
+  vector<string> algo_names = {"LS", "LPT", "MULTIFIT", "Genetic", "SA", "IG"};
 
-  for (int algo_idx = 0; algo_idx < 5; ++algo_idx) {
+  for (int algo_idx = 0; algo_idx < 6; ++algo_idx) {
     const int runs = 5;
     vector<double> run_times;
     array_type allocation;
@@ -78,7 +78,10 @@ void run_simulation(ofstream &csv, size_t num_tasks, int winner_makespan[4]) {
         allocation = geneticAlgorithm<num_machines>(tasks_copy);
         break;
       case 4:
-        allocation = SimulatedAnnealing<num_machines>(tasks_copy);
+        allocation = simulatedAnnealing<num_machines>(tasks_copy);
+        break;
+      case 5:
+        allocation = iteratedGreedy<num_machines>(tasks_copy);
         break;
       }
 
@@ -100,7 +103,7 @@ void run_simulation(ofstream &csv, size_t num_tasks, int winner_makespan[4]) {
       makespans.begin(), min_element(makespans.begin(), makespans.end()));
   winner_makespan[min_makespan_idx]++;
 
-  for (int i = 0; i < 5; ++i) {
+  for (int i = 0; i < 6; ++i) {
     csv << num_machines << "," << num_tasks << "," << algo_names[i] << ","
         << times_mean[i] << "," << times_min[i] << "," << times_max[i] << ","
         << makespans[i] << "," << distances[i] << "\n";
@@ -112,7 +115,7 @@ int main() {
   csv << "NumMachines,NumTasks,Algorithm,TimeMean,TimeMin,TimeMax,Makespan,"
          "MeanDistanceToIdeal\n";
 
-  int winner_makespan[5] = {0, 0, 0, 0, 0};
+  int winner_makespan[6] = {0, 0, 0, 0, 0, 0};
 
   for (size_t num_tasks = 500; num_tasks <= 1000; num_tasks += 100) {
     run_simulation<30>(csv, num_tasks, winner_makespan);
@@ -124,8 +127,8 @@ int main() {
 
   cout << "Simulação concluída. Resultados salvos em results.csv\n";
   cout << "Vitórias por algoritmo (menor makespan):\n";
-  vector<string> algo_names = {"LS", "LPT", "MULTIFIT", "Genetic", "SA"};
-  for (int i = 0; i < 5; ++i)
+  vector<string> algo_names = {"LS", "LPT", "MULTIFIT", "Genetic", "SA", "IG"};
+  for (int i = 0; i < 6; ++i)
     cout << algo_names[i] << ": " << winner_makespan[i] << "\n";
 
   return 0;

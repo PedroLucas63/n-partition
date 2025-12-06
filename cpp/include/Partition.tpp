@@ -1,4 +1,5 @@
 #pragma once
+#include <chrono>
 #include <cmath>
 #include <cstdint>
 #include <numeric>
@@ -415,7 +416,7 @@ geneticAlgorithm(std::vector<ValueType> &arr) {
 
 template <std::size_t n>
 std::array<std::vector<ValueType>, n>
-SimulatedAnnealing(std::vector<ValueType> &arr) {
+simulatedAnnealing(std::vector<ValueType> &arr) {
 
   // --- 1. Configuração ---
   // Ajuste: Temperatura baseada na média dos dados para ser adaptável
@@ -546,224 +547,252 @@ SimulatedAnnealing(std::vector<ValueType> &arr) {
 
 template <std::size_t n>
 std::array<std::vector<ValueType>, n>
-geneticAlgorithm2(std::vector<ValueType> &arr) {
-  // --- Constantes ---
-  const int QUEUE_MAX_SIZE = 50;
-  const int INITIAL_POPULATION_SIZE = 20;
-  const int CROSSOVER_FACTOR = 2;
-  const int MUTATION_PROBABILITY = 40; // percentage
-  const int MAX_GENERATIONS_WITHOUT_IMPROVEMENT = 5;
-  const double MUTATION_STRENGTH = 0.1;
+iteratedGreedy(std::vector<ValueType> &arr) {
+  // --- Configurações ---
+  const int MAX_ITER = 200;
+  const int DESTRUCTION_SIZE = std::min(3, static_cast<int>(arr.size()));
 
-  // RNG único e distributions
-  std::random_device rd;
-  std::mt19937 gen(rd());
-  std::uniform_real_distribution<double> dist01(0.0, 1.0);
-  std::uniform_int_distribution<int> distPercent(0, 99);
-  std::uniform_real_distribution<double> distMutation(-MUTATION_STRENGTH,
-                                                      MUTATION_STRENGTH);
+  // --- Solução Inicial ---
+  auto currentSolution = LPT<n>(arr);
+  auto bestSolution = currentSolution;
 
-  // -- Calcula o makespan ótimo --
-  ValueType sum = std::accumulate(arr.begin(), arr.end(), 0);
-  const ValueType makespan_opt = (sum + n - 1) / n;
+  // --- Cálculo das somas iniciais ---
+  auto currentSums = std::array<ValueType, n>{};
+  for (size_t i = 0; i < n; ++i) {
+    currentSums[i] = std::accumulate(currentSolution[i].begin(),
+                                     currentSolution[i].end(), ValueType{0});
+  }
+  auto bestSums = currentSums;
 
-  using Genes = std::pair<std::size_t, double>;
-  auto cmpGenes = [](const Genes &a, const Genes &b) {
-    return a.second > b.second;
-  };
-  auto generateRandomGenes = [&]() {
-    std::vector<Genes> genes;
-    for (std::size_t i = 0; i < arr.size(); i++) {
-      double random = dist01(gen);
-      genes.push_back({i, random});
-    }
-    return genes;
-  };
-
-  auto getGenesValues = [&](std::vector<Genes> genes) {
-    std::sort(genes.begin(), genes.end(), cmpGenes);
-    std::vector<ValueType> values;
-    for (Genes gene : genes) {
-      values.push_back(arr[gene.first]);
-    }
-    return values;
-  };
-
-  using Individual =
-      std::pair<std::vector<Genes>, ValueType>; // (genes, fitness)
-
-  // Menor fitness = melhor indivíduo
-  auto cmp = [](const Individual &a, const Individual &b) {
-    return a.second < b.second;
-  };
-
-  std::multiset<Individual, decltype(cmp)> population(cmp);
-
-  // --- Função auxiliar: makespan (usa o genes passado) ---
-  auto calculateMakespan = [&](const std::vector<Genes> &genes) {
-    std::vector<ValueType> tmp = getGenesValues(genes);
-    auto solution = LS<n>(tmp);
-
-    std::array<ValueType, n> sums;
-    for (std::size_t i = 0; i < n; ++i)
-      sums[i] =
-          std::accumulate(solution[i].begin(), solution[i].end(), ValueType{0});
-
+  // --- Funções auxiliares ---
+  auto getMakespan = [&](const std::array<ValueType, n> &sums) {
     return *std::max_element(sums.begin(), sums.end());
   };
 
-  // --- Adicionar indivíduo (com poda para QUEUE_MAX_SIZE) ---
-  auto addIndividual = [&](const std::vector<Genes> &genes) {
-    ValueType fitness = calculateMakespan(genes);
-    population.insert({genes, fitness});
-
-    if ((int)population.size() > QUEUE_MAX_SIZE) {
-      auto it = std::prev(population.end());
-      population.erase(it);
-    }
+  auto getMinMachine = [&](const std::array<ValueType, n> &sums) {
+    return std::distance(sums.begin(),
+                         std::min_element(sums.begin(), sums.end()));
   };
 
-  // --- Seleção por roleta --- auto selectParents = [&]() ->
-  auto selectParents = [&]() -> std::pair<Individual, Individual> {
-    std::vector<const Individual *> index;
-    index.reserve(population.size());
+  auto getMinAndMaxMachine = [&](const std::array<ValueType, n> &sums) {
+    size_t minIdx = 0;
+    size_t maxIdx = 0;
+    for (size_t i = 1; i < n; ++i) {
+      if (sums[i] < sums[minIdx])
+        minIdx = i;
+      if (sums[i] > sums[maxIdx])
+        maxIdx = i;
+    }
+    return std::make_pair(minIdx, maxIdx);
+  };
 
-    for (auto &ind : population)
-      index.push_back(&ind);
+  auto getCurrentTimeInMs =
+      [](std::chrono::time_point<std::chrono::steady_clock> start) {
+        auto now = std::chrono::steady_clock::now();
+        auto time =
+            std::chrono::duration_cast<std::chrono::milliseconds>(now - start)
+                .count();
+        return time;
+      };
 
-    std::vector<double> weights;
-    weights.reserve(index.size());
-    for (auto ptr : index)
-      weights.push_back(1.0 / (ptr->second + 1e-9));
+  // --- Configuração da temperatura ---
+  const double SUM = std::accumulate(arr.begin(), arr.end(), 0.0) / arr.size();
+  const double COOLING_RATE = 0.95;
+  const double MIN_TEMPERATURE = 0.05;
+  const int ITERATIONS_TO_COOL = 10;
+  double temperature = SUM * 0.5;
 
-    double totalWeight = std::accumulate(weights.begin(), weights.end(), 0.0);
-    for (auto &w : weights)
-      w /= totalWeight;
+  // --- Configurações finais ---
+  std::random_device rd;
+  std::mt19937 gen(rd());
+  std::uniform_int_distribution<> distMachine(0, n - 1);
+  std::uniform_real_distribution<> dist01(0.0, 1.0);
+  int iterations = 0;
 
-    auto roulette = [&](const Individual *exclude) {
-      while (true) {
-        double r = dist01(gen);
-        double acc = 0.0;
+  // --- Tempo inicial ---
+  const auto START_TIME = std::chrono::steady_clock::now();
 
-        for (size_t i = 0; i < weights.size(); i++) {
-          acc += weights[i];
+  // --- Loop principal ---
+  while (iterations < MAX_ITER) {
+    // --- Iterações ---
+    iterations++;
+    std::array<ValueType, n> currentSumsLoop = currentSums;
+    std::array<std::vector<ValueType>, n> currentSolutionLoop = currentSolution;
 
-          if (r <= acc) {
-            if (exclude == nullptr || index[i] != exclude)
-              return *index[i];
+    // --- Destruição Inteligente ---
+    std::vector<ValueType> removedJobs;
+
+    // 1. Remove jobs especificamente da máquina com maior carga (Gargalo)
+    // Isso aumenta a chance de reduzir o makespan na reconstrução
+    auto [currentMinIdx, currentMaxIdx] = getMinAndMaxMachine(currentSumsLoop);
+    int jobsToRemoveFromMax =
+        std::min((int)currentSolutionLoop[currentMaxIdx].size(), 2);
+
+    for (int k = 0; k < jobsToRemoveFromMax; ++k) {
+      if (currentSolutionLoop[currentMaxIdx].empty())
+        break;
+
+      int lastIdx = currentSolutionLoop[currentMaxIdx].size() - 1;
+      std::uniform_int_distribution<> distJob(0, lastIdx);
+      int jobIdx = distJob(gen);
+
+      ValueType job = currentSolutionLoop[currentMaxIdx][jobIdx];
+      removedJobs.push_back(job);
+
+      auto it = currentSolutionLoop[currentMaxIdx].begin() + jobIdx;
+      currentSolutionLoop[currentMaxIdx].erase(it);
+      currentSumsLoop[currentMaxIdx] -= job;
+    }
+
+    // 2. Remove o restante aleatoriamente para diversificação
+    int remainingDestruction = DESTRUCTION_SIZE - jobsToRemoveFromMax;
+    for (int i = 0; i < remainingDestruction; ++i) {
+      // --- Seleciona a máquina aleatoriamente ---
+      int machineIdx = distMachine(gen);
+
+      // --- Pega a quantidade de jobs na máquina ---
+      int machineSize = currentSolutionLoop[machineIdx].size();
+
+      // --- Se a maquina estiver vazia, desconsidera ---
+      if (machineSize == 0) {
+        --i;
+        continue;
+      }
+
+      // --- Seleciona um job aleatoriamente ---
+      int lastIdx = currentSolutionLoop[machineIdx].size() - 1;
+      std::uniform_int_distribution<> distJob(0, lastIdx);
+      int jobIdx = distJob(gen);
+
+      // --- Remove o job ---
+      ValueType job = currentSolutionLoop[machineIdx][jobIdx];
+      removedJobs.push_back(currentSolutionLoop[machineIdx][jobIdx]);
+      auto it = currentSolutionLoop[machineIdx].begin() + jobIdx;
+      currentSolutionLoop[machineIdx].erase(it);
+      currentSumsLoop[machineIdx] -= job;
+    }
+
+    // --- Reconstrução ---
+    for (const auto &job : removedJobs) {
+      // --- Insere o job na máquina com menor soma ---
+      int machineIdx = getMinMachine(currentSumsLoop);
+      currentSolutionLoop[machineIdx].push_back(job);
+      currentSumsLoop[machineIdx] += job;
+    }
+
+    // --- Busca Local Iterativa ---
+    bool improved = true;
+    while (improved) {
+      improved = false;
+      auto [minIdx, maxIdx] = getMinAndMaxMachine(currentSumsLoop);
+      auto currentMakespanLoop = getMakespan(currentSumsLoop);
+
+      // --- Tenta mover um job da máquina crítica para a mínima ---
+      if (!currentSolutionLoop[maxIdx].empty()) {
+        for (std::size_t i = 0; i < currentSolutionLoop[maxIdx].size(); ++i) {
+          ValueType job = currentSolutionLoop[maxIdx][i];
+
+          // --- Simula a mudança nas somas ---
+          auto tempSums = currentSumsLoop;
+          tempSums[maxIdx] -= job;
+          tempSums[minIdx] += job;
+
+          // --- Verifica se melhorou ---
+          if (getMakespan(tempSums) < currentMakespanLoop) {
+            // --- Aceita a mudança ---
+            auto it = currentSolutionLoop[maxIdx].begin() + i;
+            currentSolutionLoop[maxIdx].erase(it);
+            currentSumsLoop[maxIdx] -= job;
+
+            currentSolutionLoop[minIdx].push_back(job);
+            currentSumsLoop[minIdx] += job;
+
+            improved = true;
             break;
           }
         }
       }
-    };
 
-    Individual p1 = roulette(nullptr);
-    Individual p2 = roulette(&p1);
+      if (improved)
+        continue;
 
-    return {p1, p2};
-  };
+      // --- Tenta realizar a troca de dois jobs ---
+      for (std::size_t i = 0; i < currentSolutionLoop[maxIdx].size(); ++i) {
+        bool swapFound = false;
+        for (std::size_t j = 0; j < currentSolutionLoop[minIdx].size(); ++j) {
+          // --- Pega os jobs ---
+          ValueType job1 = currentSolutionLoop[maxIdx][i];
+          ValueType job2 = currentSolutionLoop[minIdx][j];
 
-  // --- Primeiro indivíduo (Ordenado) ---
-  auto generateFirstIndividual = [](std::vector<ValueType> arr) {
-    std::vector<std::pair<std::size_t, ValueType>> tmp;
-    for (std::size_t i = 0; i < arr.size(); i++) {
-      tmp.push_back({i, arr[i]});
-    }
+          // --- Simula a troca nas somas ---
+          auto tempSums = currentSumsLoop;
+          tempSums[maxIdx] = tempSums[maxIdx] - job1 + job2;
+          tempSums[minIdx] = tempSums[minIdx] - job2 + job1;
 
-    std::sort(tmp.begin(), tmp.end(),
-              [](std::pair<std::size_t, ValueType> a,
-                 std::pair<std::size_t, ValueType> b) {
-                return a.second < b.second;
-              });
-    double increment = 1.0 / arr.size();
+          // --- Verifica se melhorou ---
+          if (getMakespan(tempSums) < currentMakespanLoop) {
+            // --- Aceita a troca ---
+            auto it1 = currentSolutionLoop[maxIdx].begin() + i;
+            currentSolutionLoop[maxIdx].erase(it1);
+            currentSumsLoop[maxIdx] -= job1;
 
-    std::vector<Genes> genes;
-    for (std::size_t i = 0; i < arr.size(); i++) {
-      genes.push_back({tmp[i].first, i * increment});
-    }
-    return genes;
-  };
+            auto it2 = currentSolutionLoop[minIdx].begin() + j;
+            currentSolutionLoop[minIdx].erase(it2);
+            currentSumsLoop[minIdx] -= job2;
 
-  // --- População inicial ---
-  auto work = generateFirstIndividual(arr);
-  for (int i = 0; i < INITIAL_POPULATION_SIZE; ++i) {
-    addIndividual(work);
-    work = generateRandomGenes();
-  }
+            currentSolutionLoop[maxIdx].push_back(job2);
+            currentSumsLoop[maxIdx] += job2;
 
-  // garante que population não está vazia
-  if (population.empty()) {
-    std::vector<ValueType> tmp = arr;
-    return LS<n>(tmp);
-  }
+            currentSolutionLoop[minIdx].push_back(job1);
+            currentSumsLoop[minIdx] += job1;
 
-  // --- Crossover (uniform-like, preserva multiconjunto) ---
-  auto crossover = [&](const Individual &p1, const Individual &p2) {
-    size_t L = p1.first.size();
-    std::vector<Genes> child(L, {-1, 0.0});
-
-    for (size_t i = 0; i < L; i++) {
-      if (i % 2 == 0) {
-        child[i] = p1.first[i];
-      } else {
-        child[i] = p2.first[i];
+            improved = true;
+            swapFound = true;
+            break;
+          }
+        }
+        if (swapFound)
+          break;
       }
     }
 
-    return child;
-  };
+    // --- Atualização da melhor solução ---
+    // --- Calcula makespan atual ---
+    ValueType currentMakespan = getMakespan(currentSumsLoop);
+    ValueType bestMakespan = getMakespan(bestSums);
 
-  // --- Mutação ---
-  auto mutation = [&](std::vector<Genes> genes) {
-    std::uniform_int_distribution<size_t> idxDist(0, genes.size() - 1);
+    // --- Se melhorou, aceita diretamente ---
+    if (currentMakespan < bestMakespan) {
+      // --- Atualiza a melhor solução e a solução corrente ---
+      bestSums = currentSumsLoop;
+      bestSolution = currentSolutionLoop;
+      currentSums = currentSumsLoop;
+      currentSolution = currentSolutionLoop;
 
-    while (distPercent(gen) < MUTATION_PROBABILITY) {
-      size_t idx = idxDist(gen);
-      genes[idx].second += distMutation(gen);
-
-      if (genes[idx].second < 0.0) {
-        genes[idx].second = 0.0;
-      } else if (genes[idx].second > 1.0) {
-        genes[idx].second = 1.0;
+      // --- Verifica se o problema foi resolvido ---
+      auto [minIdx, maxIdx] = getMinAndMaxMachine(bestSums);
+      if (bestSums[minIdx] == bestSums[maxIdx]) {
+        break;
       }
-    }
-
-    return genes;
-  };
-
-  // --- Evolução ---
-  int generationsWithoutImprovement = 0;
-  ValueType bestFitness = std::numeric_limits<ValueType>::max();
-
-  // inicializa bestFitness a partir do melhor atual
-  bestFitness = population.begin()->second;
-
-  while (generationsWithoutImprovement < MAX_GENERATIONS_WITHOUT_IMPROVEMENT) {
-    int offspringCount =
-        std::max<int>(1, (int)population.size() / CROSSOVER_FACTOR);
-
-    for (int i = 0; i < offspringCount; ++i) {
-      auto parents = selectParents();
-      auto child = crossover(parents.first, parents.second);
-      child = mutation(child);
-      addIndividual(child);
-    }
-
-    ValueType currentBest = population.begin()->second;
-    if (currentBest < bestFitness) {
-      bestFitness = currentBest;
-      generationsWithoutImprovement = 0;
     } else {
-      ++generationsWithoutImprovement;
+      auto diff = ((double)currentMakespan) / bestMakespan - 1.0;
+      double acceptanceProb = std::exp(-diff / temperature);
+
+      if (dist01(gen) < acceptanceProb) {
+        currentSums = currentSumsLoop;
+        currentSolution = currentSolutionLoop;
+      }
     }
 
-    if (bestFitness == makespan_opt) {
-      break;
+    // --- Resfriamento ---
+    if (iterations % ITERATIONS_TO_COOL == 0) {
+      temperature *= COOLING_RATE;
+      if (temperature < MIN_TEMPERATURE) {
+        temperature = MIN_TEMPERATURE;
+      }
     }
   }
 
-  // --- Retorna solução LS do melhor indivíduo ---
-  std::vector<ValueType> bestCopy = getGenesValues(population.begin()->first);
-  return LS<n>(bestCopy);
+  return bestSolution;
 }
 } // namespace partition

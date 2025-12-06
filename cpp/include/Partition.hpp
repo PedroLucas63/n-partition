@@ -112,11 +112,11 @@ geneticAlgorithm(std::vector<ValueType> &arr);
 
 template <std::size_t n>
 std::array<std::vector<ValueType>, n>
-geneticAlgorithm2(std::vector<ValueType> &arr);
+simulatedAnnealing(std::vector<ValueType> &arr);
 
 template <std::size_t n>
 std::array<std::vector<ValueType>, n>
-SimulatedAnnealing(std::vector<ValueType> &arr);
+iteratedGreedy(std::vector<ValueType> &arr);
 } // namespace partition
 
 #include "Partition.tpp"
