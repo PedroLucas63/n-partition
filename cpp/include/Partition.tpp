@@ -549,7 +549,7 @@ template <std::size_t n>
 std::array<std::vector<ValueType>, n>
 iteratedGreedy(std::vector<ValueType> &arr) {
   // --- Configurações ---
-  const int MAX_ITER = 200;
+  const int MAX_TIME_MS = 200;
   const int DESTRUCTION_SIZE = std::min(3, static_cast<int>(arr.size()));
 
   // --- Solução Inicial ---
@@ -613,7 +613,7 @@ iteratedGreedy(std::vector<ValueType> &arr) {
   const auto START_TIME = std::chrono::steady_clock::now();
 
   // --- Loop principal ---
-  while (iterations < MAX_ITER) {
+  while (getCurrentTimeInMs(START_TIME) < MAX_TIME_MS) {
     // --- Iterações ---
     iterations++;
     std::array<ValueType, n> currentSumsLoop = currentSums;
